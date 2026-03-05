@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EPM Formatter Web App</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        :root {
+            --bg-main: #121212; --bg-container: #1e1e1e; --bg-panel: #2a2a2a;
+            --text-main: #e0e0e0; --text-muted: #aaaaaa; --border-color: #444444;
+            --accent-blue: #3498db; --accent-green: #27ae60; --accent-green-hover: #2ecc71;
+            --grid-font-size: 12px;
+        }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-main); margin: 0; padding: 20px; color: var(--text-main); color-scheme: dark; }
+        .main-container { max-width: 1000px; margin: auto; background: var(--bg-container); padding: 20px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        
+        button { padding: 8px 16px; background: #3a3a3a; color: white; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #4a4a4a; }
+        .btn-green { background: var(--accent-green); border: none; }
+        .btn-green:hover { background: var(--accent-green-hover); }
+        .btn-small { padding: 4px 10px; font-size: 14px; }
+        
+        /* Global Top Bar */
+        .global-control-bar { background: var(--bg-panel); padding: 15px; border-radius: 6px; border: 1px solid var(--accent-blue); margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        select { padding: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; width: 300px; font-size: 14px; }
+        #status-log { padding: 10px; background: #222; border-left: 4px solid var(--accent-blue); font-family: monospace; color: #ccc; flex-grow: 1; margin: 0; }
+        
+        /* File Upload */
+        .file-upload-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        input[type="file"] { display: none; }
+        .custom-file-label { padding: 8px 16px; background: #3a3a3a; color: white; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .custom-file-label:hover { background: #4a4a4a; border-color: var(--accent-blue); }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        .tab-btn { background: none; color: var(--text-muted); padding: 10px 20px; border: none; font-size: 16px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-btn.active { color: #ffffff; border-bottom-color: var(--accent-blue); font-weight: bold; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Tables */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .data-table th { background: #2a2a2a; color: #fff; text-align: left; border: 1px solid var(--border-color); padding: 10px; }
+        .data-table td { background: var(--bg-container); border: 1px solid var(--border-color); padding: 10px; }
+
+        /* Force Checkboxes to be large and visible in Dark Mode */
+        input[type="checkbox"].file-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-green);
+            vertical-align: middle;
+            outline: 1px solid #555; /* Adds a hard border so it pops against the dark background */
+            border-radius: 3px;
+        }
+
+        /* Grid Visualizer */
+        .table-container { overflow-x: auto; max-height: 500px; border: 1px solid var(--border-color); background: #111; padding: 1px; }
+        .grid-table { border-collapse: collapse; width: 100%; }
+        .grid-table th, .grid-table td { font-size: var(--grid-font-size); transition: font-size 0.2s; border: 1px solid #111; padding: 8px; text-align: center; min-width: 100px; white-space: pre-wrap; }
+        
+        input[type="text"] { padding: 6px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; width: 100px; }
+        .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+        .color-preview { width: 25px; height: 25px; border: 1px solid #000; border-radius: 4px; box-shadow: 0 0 2px rgba(255,255,255,0.2); flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <h2>Oracle EPM XML Multi-Tool</h2>
+    
+    <div class="global-control-bar">
+        <div>
+            <strong>Currently Inspecting:</strong><br>
+            <select id="global-file-select" py-change="switch_active_file">
+                <option value="">No files loaded</option>
+            </select>
+        </div>
+        <div id="status-log">Status: Awaiting folder upload...</div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-files', this)">1. File Manager</button>
+        <button class="tab-btn" onclick="switchTab('tab-visualizer', this)">2. Grid Visualizer</button>
+        <button class="tab-btn" onclick="switchTab('tab-colors', this)">3. Color Injector</button>
+    </div>
+
+    <div id="tab-files" class="tab-content active">
+        <div class="file-upload-wrapper">
+            <label for="folder-upload" class="custom-file-label">📁 Select Folder of XMLs</label>
+            <input type="file" id="folder-upload" webkitdirectory directory multiple>
+            <span id="folder-name-display" style="color: var(--text-muted); font-style: italic;">No folder chosen</span>
+            
+            <button py-click="load_folder_to_ram" class="btn-green" style="margin-left: auto;">Load Files</button>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+            <button class="btn-small" onclick="toggleAllCheckboxes(true)">Check All</button>
+            <button class="btn-small" onclick="toggleAllCheckboxes(false)">Uncheck All</button>
+            <button py-click="batch_run_formatting" class="btn-green" style="margin-left: auto; padding: 10px 20px;">▶ BATCH FORMAT & DOWNLOAD ZIP</button>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px; text-align: center;">Run?</th>
+                    <th>File Name</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="file-list-target">
+                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Please load a folder containing XML forms.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="tab-visualizer" class="tab-content">
+        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
+            <label><input type="radio" name="view_mode" value="member" checked onchange="document.getElementById('refresh-grid-btn').click()"> Member Name</label>
+            <label><input type="radio" name="view_mode" value="dimension" onchange="document.getElementById('refresh-grid-btn').click()"> Dimension Name</label>
+            <label><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()"> Row/Col Type</label>
+            
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; background: #2a2a2a; padding: 4px 8px; border-radius: 4px; border: 1px solid #444;">
+                <span style="font-size: 12px; color: #aaa;">Zoom:</span>
+                <button class="btn-small" onclick="changeZoom(-2)">➖</button>
+                <span id="zoom-display" style="width: 30px; text-align: center; font-weight: bold;">12</span>
+                <button class="btn-small" onclick="changeZoom(2)">➕</button>
+            </div>
+
+            <button id="refresh-grid-btn" py-click="render_grid_visualizer" style="background: #3a3a3a; color: white; border: 1px solid #555;">↻ Refresh Grid</button>
+            
+            <button py-click="format_active_file" class="btn-green">▶ Format & Download Active File</button>
+        </div>
+        <div class="table-container" id="grid-render-target">
+            <div style="padding: 20px; background: var(--bg-panel); text-align: center; color: var(--text-muted);">Select a file from the dropdown above.</div>
+        </div>
+    </div>
+
+    <div id="tab-colors" class="tab-content">
+        <button py-click="render_color_injector" class="btn-green">↻ Refresh Colors</button>
+        <button py-click="inject_colors_to_active_file" style="margin-left: 10px;">Inject XML & Download Single File</button>
+        
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Name</th>
+                    <th>Original Preview</th>
+                    <th>New Hex Code</th>
+                </tr>
+            </thead>
+            <tbody id="color-render-target">
+                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Select a file from the dropdown above.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Handle File Input UI text
+    document.getElementById('folder-upload').addEventListener('change', function(e) {
+        let count = 0;
+        for (let i = 0; i < this.files.length; i++) {
+            if (this.files[i].name.toLowerCase().endsWith('.xml')) count++;
+        }
+        document.getElementById('folder-name-display').innerText = count > 0 ? `Found ${count} XML files ready to load.` : 'No XML files found.';
+    });
+
+    function switchTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btnElement.classList.add('active');
+    }
+
+    function toggleAllCheckboxes(state) {
+        document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = state);
+    }
+
+    let currentZoom = 12;
+    function changeZoom(step) {
+        currentZoom += step;
+        if (currentZoom < 6) currentZoom = 6;
+        if (currentZoom > 30) currentZoom = 30;
+        document.documentElement.style.setProperty('--grid-font-size', currentZoom + 'px');
+        document.getElementById('zoom-display').innerText = currentZoom;
+    }
+</script>
+
+<py-config>
+    [[fetch]]
+    files = ["./xml_analyzer.py"]
+</py-config>
+
+<script type="py">
+    import io
+    import zipfile
+    from xml_analyzer import XMLAnalyzer
+    from pyscript import document, window
+    from pyodide.ffi import to_js
+
+    # --- STATE MANAGEMENT ---
+    # Registry format: { "filename.xml": XMLAnalyzer_instance }
+    file_registry = {}
+    active_filename = None
+    editable_color_ids = []
+
+    def get_active_modifier():
+        """Returns the XMLAnalyzer instance for the currently selected file."""
+        if active_filename and active_filename in file_registry:
+            return file_registry[active_filename]
+        return None
+
+    def log(msg):
+        document.getElementById("status-log").innerText = f"Status: {msg}"
+        print(msg)
+
+    # --- TAB 1: FILE MANAGER LOGIC ---
+    async def load_folder_to_ram(event):
+        global active_filename, file_registry
+        file_input = document.getElementById("folder-upload")
+        
+        if not file_input.files or file_input.files.length == 0:
+            log("Error - Please select a folder containing XML files.")
+            return
+            
+        log("Reading files into memory... Please wait.")
+        file_registry.clear()
+        
+        # Async iterate through the JavaScript FileList
+        for i in range(file_input.files.length):
+            file = file_input.files.item(i)
+            if file.name.lower().endswith(".xml"):
+                text_content = await file.text()
+                try:
+                    mod = XMLAnalyzer()
+                    mod.load_from_string(text_content)
+                    file_registry[file.name] = mod
+                except Exception as e:
+                    print(f"Skipped {file.name}: Invalid XML format.")
+
+        if not file_registry:
+            log("Error - No valid XML forms found in the selected folder.")
+            return
+
+        # Set the first file as active by default
+        active_filename = list(file_registry.keys())[0]
+        
+        refresh_file_manager_ui()
+        refresh_global_dropdown()
+        switch_active_file(None) # Trigger the initial render
+        log(f"Successfully loaded {len(file_registry)} files into memory!")
+
+    def refresh_file_manager_ui():
+        target = document.getElementById("file-list-target")
+        html = ""
+        for fname in file_registry.keys():
+            html += f"""
+            <tr>
+                <td style="text-align: center;"><input type="checkbox" class="file-checkbox" value="{fname}" checked></td>
+                <td>{fname}</td>
+                <td style="color: var(--accent-green);">Loaded in RAM</td>
+            </tr>
+            """
+        target.innerHTML = html
+
+    def refresh_global_dropdown():
+        select_el = document.getElementById("global-file-select")
+        html = ""
+        for fname in file_registry.keys():
+            selected = "selected" if fname == active_filename else ""
+            html += f"<option value='{fname}' {selected}>{fname}</option>"
+        select_el.innerHTML = html
+
+    def switch_active_file(event):
+        global active_filename
+        select_el = document.getElementById("global-file-select")
+        if select_el.value:
+            active_filename = select_el.value
+            log(f"Switched inspection to: {active_filename}")
+            # Refresh the visualizer and color tabs for the new file
+            render_grid_visualizer(None)
+            render_color_injector(None)
+
+    def batch_run_formatting(event):
+        if not file_registry:
+            log("Warning: Load a folder first!")
+            return
+            
+        # Get all checked files from the DOM
+        checkboxes = document.querySelectorAll(".file-checkbox")
+        selected_files = [cb.value for cb in checkboxes if cb.checked]
+        
+        if not selected_files:
+            log("Warning: No files selected to format.")
+            return
+            
+        log(f"Batch Formatting {len(selected_files)} files... Please wait.")
+        
+        # Create a ZIP file in RAM
+        memory_zip = io.BytesIO()
+        with zipfile.ZipFile(memory_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fname in selected_files:
+                mod = file_registry[fname]
+                try:
+                    # Run the logic
+                    mod.apply_master_formatting()
+                    
+                    # Extract the string and put it in the zip INSIDE a folder
+                    xml_str = mod.get_final_xml_string()
+                    zf.writestr(f"Formatted_Forms/{fname}", xml_str)
+                    
+                except Exception as e:
+                    print(f"Failed to format {fname}: {e}")
+
+        # Trigger ZIP Download
+        download_zip(memory_zip.getbuffer(), "EPM_Formatted_Export.zip")
+        log(f"Success! {len(selected_files)} files formatted and downloaded as a ZIP.")
+        render_grid_visualizer(None)
+    
+    def format_active_file(event):
+        modifier = get_active_modifier()
+        if not modifier or not modifier.root:
+            log("Warning: Select a file first!")
+            return
+        
+        log(f"Running Master Formatting on {active_filename}...")
+        try:
+            # 1. Apply formatting logic (and structural accent row injection)
+            modifier.apply_master_formatting()
+            
+            # 2. Extract final string
+            xml_string = modifier.get_final_xml_string()
+            
+            # 3. Download the single file using its original name
+            download_single(xml_string, active_filename)
+            
+            log(f"Formatted and downloaded: {active_filename}")
+            
+            # 4. Refresh the UI so you can instantly see the new Orange Accent Row!
+            render_grid_visualizer(None)
+            
+        except Exception as e:
+            log(f"Error during formatting: {e}")
+
+    # --- TAB 2: GRID VISUALIZER LOGIC ---
+    def get_display_text(item_data, mode):
+        real_dims = [k for k in item_data.keys() if not k.startswith("_")]
+        if mode == "dimension": return "\n".join([dim[:18] for dim in real_dims])
+        elif mode == "member": return "\n".join([str(item_data[dim])[:18] for dim in real_dims])
+        elif mode == "type": return item_data.get("_type", "UNKNOWN")[:15]
+        return item_data.get("_display_name", "")[:15]
+
+    def render_grid_visualizer(event):
+        target = document.getElementById("grid-render-target")
+        modifier = get_active_modifier()
+        
+        if not modifier or not modifier.root:
+            target.innerHTML = "<div style='padding:20px; text-align:center;'>No file selected.</div>"
+            return
+            
+        grid = modifier.get_rowcols()
+        fmt_map = modifier.get_format_map()
+        mode = "member"
+        for r in document.getElementsByName("view_mode"):
+            if r.checked: mode = r.value
+                
+        html = "<table class='grid-table'><tr><th style='background:#E0E0E0'></th>"
+        
+        for col in grid["columns"]:
+            seg_idx = col.get("_segment_idx", 1)
+            bg = fmt_map.get((0, seg_idx), "#E0E0E0")
+            fg = "white" if bg.upper() in ["#0B2531", "#000000"] else "black"
+            text = get_display_text(col, mode)
+            html += f"<th style='background-color:{bg}; color:{fg}'>{text}</th>"
+        html += "</tr>"
+        
+        for row in grid["rows"]:
+            r_seg_idx = row.get("_segment_idx", 1)
+            is_spacer = (row.get("_size") == "-4")
+            
+            row_height_style = "height: 4px;" if is_spacer else ""
+            cell_pad_style = "padding: 0; font-size: 0px; color: transparent;" if is_spacer else ""
+            
+            html += f"<tr style='{row_height_style}'>"
+            
+            bg = fmt_map.get((r_seg_idx, 0), "#E0E0E0")
+            fg = "transparent" if is_spacer else ("white" if bg.upper() in ["#0B2531", "#000000"] else "black")
+            text = get_display_text(row, mode)
+            html += f"<th style='background-color:{bg}; color:{fg}; {cell_pad_style}'>{text}</th>"
+            
+            for col in grid["columns"]:
+                c_seg_idx = col.get("_segment_idx", 1)
+                
+                if (r_seg_idx, c_seg_idx) in fmt_map: bg_data = fmt_map[(r_seg_idx, c_seg_idx)]
+                elif (r_seg_idx, -1) in fmt_map: bg_data = fmt_map[(r_seg_idx, -1)]
+                elif (-1, c_seg_idx) in fmt_map: bg_data = fmt_map[(-1, c_seg_idx)]
+                else: bg_data = "#FFFFFF"
+                
+                fg_data = "transparent" if is_spacer else ("white" if bg_data.upper() in ["#0B2531", "#000000"] else "black")
+                html += f"<td style='background-color:{bg_data}; color:{fg_data}; {cell_pad_style}'>Data</td>"
+            html += "</tr>"
+            
+        html += "</table>"
+        target.innerHTML = html
+
+    # --- TAB 3: COLOR INJECTOR LOGIC ---
+    def render_color_injector(event):
+        global editable_color_ids
+        target = document.getElementById("color-render-target")
+        modifier = get_active_modifier()
+        
+        if not modifier or not modifier.root:
+            target.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No file selected.</td></tr>"
+            return
+            
+        raw_colors = modifier.get_colors()
+        excluded = {"FFFFFF", "000000", "#FFFFFF", "#000000"}
+        color_list = [c for c in raw_colors if c[1] not in excluded]
+        editable_color_ids = [c[0] for c in color_list]
+        
+        if not color_list:
+            target.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No editable colors found.</td></tr>"
+            return
+            
+        html = ""
+        for c_id, hex_val in color_list:
+            html += f"""
+            <tr>
+                <td style='font-weight: bold;'>{c_id}</td>
+                <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span>#{hex_val}</span></div></td>
+                <td><div class='flex-row'><span style='color: #aaa;'>#</span><input type='text' id='color_input_{c_id}' value='{hex_val}' oninput="document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
+            </tr>
+            """
+        target.innerHTML = html
+
+    def inject_colors_to_active_file(event):
+        modifier = get_active_modifier()
+        if not modifier or not modifier.root:
+            log("Error: No file selected.")
+            return
+            
+        clean_data = []
+        for c_id in editable_color_ids:
+            input_el = document.getElementById(f"color_input_{c_id}")
+            if input_el:
+                clean_data.append((c_id, input_el.value.replace("#", "").strip()))
+                
+        if clean_data:
+            modifier.inject_colors(clean_data)
+            
+            # Download using the EXACT original filename
+            xml_string = modifier.get_final_xml_string()
+            download_single(xml_string, active_filename)
+            
+            log(f"Colors updated for {active_filename} and downloaded!")
+            render_grid_visualizer(None)
+
+    # --- DOWNLOAD HELPERS ---
+    def download_single(xml_string, filename):
+        blob = window.Blob.new([xml_string], {type: "text/xml"})
+        trigger_browser_download(blob, filename)
+
+    def download_zip(zip_buffer, filename):
+        """Converts Python memory bytes into a JavaScript Uint8Array for flawless ZIP downloading."""
+        js_array = window.Uint8Array.new(to_js(zip_buffer))
+        blob = window.Blob.new([js_array], {type: "application/zip"})
+        trigger_browser_download(blob, filename)
+        
+    def trigger_browser_download(blob_obj, filename):
+        url = window.URL.createObjectURL(blob_obj)
+        a = document.createElement("a")
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+
+</script>
+
+</body>
+</html>
