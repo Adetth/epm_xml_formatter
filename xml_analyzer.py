@@ -222,7 +222,7 @@ class XMLAnalyzer:
         for c_idx in range(max_col_seg):
             self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color="0B2531")
 
-        # 2. Paint Row Metadata dynamically based on rules
+        # 2. Paint Spacer Rows dynamically
         for r_idx in range(1, max_row_seg + 1):
             row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
             if not row_info: continue
@@ -231,53 +231,50 @@ class XMLAnalyzer:
             is_spacer = (row_info.get("_size") == "-4")
             
             if r_idx == 1 and is_formula and not is_spacer:
-                # Rule 2 formatting: Apply Bold/DarkBlue to both header and data
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=col_style_id, hex_color="0B2531")
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=col_style_id, hex_color="0B2531")
                 
             elif is_formula and is_spacer:
-                # Accent Line formatting: Apply Orange to header and data
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=orange_style_id, hex_color="FF8C00")
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00")
                 
             else:
-                # Fallback DVR so the Python Web Visualizer can still see the Light Blue
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF")
+                # We NO LONGER inject a Location-Based DVR for standard rows! We use Engine 2 instead.
+                pass
 
-        # --- ENGINE 2: TUPLE DIMENSION INJECTION ---
-        # Because EPM drops row DVRs on dynamically expanding members, we inject 
-        # a structural Tuple mapping that forcefully cascades Light Blue to all 
-        # members of the Row dimensions.
-        row_dimensions = set()
-        rows_node = self.root.find(".//query/rows")
-        if rows_node is not None:
-            for dim in rows_node.findall(".//dimension"):
-                dim_name = dim.get("name")
-                if dim_name:
-                    row_dimensions.add(dim_name)
-
-        for dim_name in row_dimensions:
-            self.add_dimension_tuple(style_id=row_style_id, grid_loc="rows", dim_name=dim_name)
+        # --- ENGINE 2: TUPLE MEMBER INJECTION ---
+        # Bypasses the broken EPM Location UI by hard-coding the Light Blue color directly to the Member Name
+        tuples_container = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
+        if tuples_container is not None:
+            for r_idx in range(1, max_row_seg + 1):
+                row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
+                if not row_info: continue
+                
+                is_formula = (row_info.get("_type") == "FORMULA")
+                is_spacer = (row_info.get("_size") == "-4")
+                
+                if not is_formula and not is_spacer:
+                    dim_name = None
+                    mbr_name = None
+                    
+                    # Extract the exact innermost Member Name (e.g. "Room Rent")
+                    for key, val in row_info.items():
+                        if not key.startswith("_"):
+                            dim_name = key
+                            mbr_name = val
+                            break
+                    
+                    if dim_name and mbr_name:
+                        new_tuple = ET.SubElement(tuples_container, "dataCellMbrTuple")
+                        ET.SubElement(new_tuple, "cellStyleId").text = str(row_style_id)
+                        
+                        frm_tuple = ET.SubElement(new_tuple, "frmMbrTuple")
+                        ET.SubElement(frm_tuple, "gridLocation").text = "rows"
+                        ET.SubElement(frm_tuple, "mbr", name=mbr_name, segment=f"{row_style_id}.0", dim=dim_name)
+                        print(f"Injected Member Tuple: {mbr_name} -> Style {row_style_id}")
 
         print("Master DVR & Tuple formatting complete!")
         return True
-
-    def add_dimension_tuple(self, style_id, grid_loc, dim_name):
-        """Injects a Data Cell Tuple mapping at the Dimension level."""
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
-        
-        tuples_container = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
-        if tuples_container is None: return
-
-        new_tuple = ET.SubElement(tuples_container, "dataCellMbrTuple")
-        ET.SubElement(new_tuple, "cellStyleId").text = str(style_id)
-
-        frm_tuple = ET.SubElement(new_tuple, "frmMbrTuple")
-        ET.SubElement(frm_tuple, "gridLocation").text = grid_loc
-        # Mapping the dimension name to itself forces EPM to cascade the format
-        ET.SubElement(frm_tuple, "mbr", name=dim_name, segment=f"{style_id}.0", dim=dim_name)
-        print(f"Injected Tuple: {dim_name} -> Style {style_id}")
 
     def get_colors(self):
         func_name = inspect.currentframe().f_code.co_name
