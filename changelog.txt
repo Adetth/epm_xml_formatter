@@ -1,0 +1,3 @@
+v0.10 - Added dynamic tuple generation for runtime segments.
+v0.9 - Implemented batch processing and zip downloads.
+v0.8 - Added orange spacer row structural injection.
