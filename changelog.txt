@@ -1,5 +1,7 @@
+v0.14 - Replaced single folder upload with dual File/Folder appending and added a Clear All memory button.
+v0.13 - Changelog issues bugfixes
 v0.12 - Added new tab to take only text input and give out formatted xml as text output
 v0.11 - Added changelog + version display on browser
 v0.10 - Added dynamic tuple generation for runtime segments.
 v0.9 - Implemented batch processing and zip downloads.
-v0.8 - Added orange spacer row structural injection.  
+v0.8 - Added orange spacer row structural injection.

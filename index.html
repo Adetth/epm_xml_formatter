@@ -23,12 +23,14 @@
         .btn-green { background: var(--accent-green); border: none; }
         .btn-green:hover { background: var(--accent-green-hover); }
         .btn-small { padding: 4px 10px; font-size: 14px; }
+        .btn-red { background: #e74c3c; border: none; }
+        .btn-red:hover { background: #c0392b; }
         
         .global-control-bar { background: var(--bg-panel); padding: 15px; border-radius: 6px; border: 1px solid var(--accent-blue); margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
         select { padding: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; width: 300px; font-size: 14px; }
         #status-log { padding: 10px; background: #222; border-left: 4px solid var(--accent-blue); font-family: monospace; color: #ccc; flex-grow: 1; margin: 0; }
         
-        .file-upload-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .file-upload-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; border: 1px dashed #555;}
         input[type="file"] { display: none; }
         .custom-file-label { padding: 8px 16px; background: #3a3a3a; color: white; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .custom-file-label:hover { background: #4a4a4a; border-color: var(--accent-blue); }
@@ -54,7 +56,6 @@
 
         #console-output { width: 100%; height: 450px; background: #0a0a0a; color: #00ff00; font-family: 'Consolas', 'Courier New', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; resize: vertical; box-sizing: border-box; line-height: 1.4; overflow-y: auto; }
         
-        /* NEW: Raw Text I/O Textareas */
         .xml-textarea { width: 100%; height: 250px; background: #0a0a0a; color: #e0e0e0; font-family: 'Consolas', 'Courier New', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; resize: vertical; box-sizing: border-box; line-height: 1.3; margin-bottom: 10px; white-space: pre; overflow: auto; }
         .xml-textarea:focus { outline: none; border-color: var(--accent-blue); }
 
@@ -81,20 +82,13 @@
 
 <div class="version-tag" id="app-version-tag">v...</div>
 <script>
-    // The { cache: "no-store" } ensures the browser never reads a stale changelog
     fetch('changelog.txt', { cache: "no-store" })
-        .then(response => { 
-            if (!response.ok) throw new Error("changelog.txt not found"); 
-            return response.text(); 
-        })
+        .then(response => { if (!response.ok) throw new Error("changelog.txt not found"); return response.text(); })
         .then(text => {
             const match = text.match(/v\d+\.\d+(\.\d+)?/i);
             document.getElementById('app-version-tag').innerText = match ? match[0] : "v?.??";
         })
-        .catch(error => { 
-            console.warn("Version fetch failed.", error);
-            document.getElementById('app-version-tag').innerText = "v0.10"; 
-        });
+        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.13"; });
 </script>
 
 <div class="main-container" id="main-app-container">
@@ -107,7 +101,7 @@
                 <option value="">No files loaded</option>
             </select>
         </div>
-        <div id="status-log">Status: Awaiting folder upload...</div>
+        <div id="status-log">Status: Awaiting file uploads...</div>
     </div>
 
     <div class="tabs">
@@ -120,10 +114,18 @@
 
     <div id="tab-files" class="tab-content active">
         <div class="file-upload-wrapper">
-            <label for="folder-upload" class="custom-file-label">📁 Select Folder of XMLs</label>
+            <label for="file-upload" class="custom-file-label">📄 Add Files</label>
+            <input type="file" id="file-upload" multiple accept=".xml">
+            
+            <label for="folder-upload" class="custom-file-label">📁 Add Folder</label>
             <input type="file" id="folder-upload" webkitdirectory directory multiple>
-            <span id="folder-name-display" style="color: var(--text-muted); font-style: italic;">No folder chosen</span>
-            <button py-click="load_folder_to_ram" class="btn-green" style="margin-left: auto;">Load Files</button>
+            
+            <span id="file-count-display" style="color: var(--text-muted); font-style: italic; margin-left: 10px;">0 files pending</span>
+            
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button py-click="load_files_to_ram" class="btn-green">Load to RAM</button>
+                <button py-click="clear_all_files" class="btn-red">🗑️ Clear All</button>
+            </div>
         </div>
 
         <div style="margin-top: 20px; display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
@@ -141,7 +143,7 @@
                 </tr>
             </thead>
             <tbody id="file-list-target">
-                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Please load a folder containing XML forms.</td></tr>
+                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No files currently loaded in RAM.</td></tr>
             </tbody>
         </table>
     </div>
@@ -210,13 +212,23 @@
 </div>
 
 <script>
-    document.getElementById('folder-upload').addEventListener('change', function(e) {
+    // Javascript to handle the Pending Files display
+    function updatePendingCount() {
         let count = 0;
-        for (let i = 0; i < this.files.length; i++) {
-            if (this.files[i].name.toLowerCase().endsWith('.xml')) count++;
+        let fileInput = document.getElementById('file-upload');
+        let folderInput = document.getElementById('folder-upload');
+        
+        for (let i = 0; i < fileInput.files.length; i++) {
+            if (fileInput.files[i].name.toLowerCase().endsWith('.xml')) count++;
         }
-        document.getElementById('folder-name-display').innerText = count > 0 ? `Found ${count} XML files ready to load.` : 'No XML files found.';
-    });
+        for (let i = 0; i < folderInput.files.length; i++) {
+            if (folderInput.files[i].name.toLowerCase().endsWith('.xml')) count++;
+        }
+        document.getElementById('file-count-display').innerText = count > 0 ? `${count} XML files pending load.` : '0 files pending.';
+    }
+    
+    document.getElementById('file-upload').addEventListener('change', updatePendingCount);
+    document.getElementById('folder-upload').addEventListener('change', updatePendingCount);
 
     function switchTab(tabId, btnElement) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -290,42 +302,77 @@
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
-    async def load_folder_to_ram(event):
+    # UPGRADED: Appending Memory Logic
+    async def load_files_to_ram(event):
         global active_filename, file_registry
-        file_input = document.getElementById("folder-upload")
+        file_input = document.getElementById("file-upload")
+        folder_input = document.getElementById("folder-upload")
         
-        if not file_input.files or file_input.files.length == 0:
-            log("Error - Please select a folder containing XML files.")
+        if file_input.files.length == 0 and folder_input.files.length == 0:
+            log("Error - Please select files or a folder to load.")
             return
             
         log("Reading files into memory... Please wait.")
-        file_registry.clear()
         
-        for i in range(file_input.files.length):
-            file = file_input.files.item(i)
-            if file.name.lower().endswith(".xml"):
-                text_content = await file.text()
-                try:
-                    print(f"--- Parsing {file.name} ---")
-                    mod = XMLAnalyzer()
-                    mod.load_from_string(text_content)
-                    file_registry[file.name] = mod
-                except Exception as e:
-                    print(f"Skipped {file.name}: Invalid XML format. Error: {e}")
+        loaded_count = 0
+        
+        async def process_file_list(file_list):
+            nonlocal loaded_count
+            for i in range(file_list.length):
+                file = file_list.item(i)
+                if file.name.lower().endswith(".xml"):
+                    text_content = await file.text()
+                    try:
+                        print(f"--- Parsing {file.name} ---")
+                        mod = XMLAnalyzer()
+                        mod.load_from_string(text_content)
+                        file_registry[file.name] = mod
+                        loaded_count += 1
+                    except Exception as e:
+                        print(f"Skipped {file.name}: Invalid XML format. Error: {e}")
+
+        # Process both inputs and append to the existing registry
+        await process_file_list(file_input.files)
+        await process_file_list(folder_input.files)
 
         if not file_registry:
-            log("Error - No valid XML forms found in the selected folder.")
+            log("Error - No valid XML forms found.")
             return
 
-        active_filename = list(file_registry.keys())[0]
+        # If this is the first batch loaded, set the active file
+        if not active_filename or active_filename not in file_registry:
+            active_filename = list(file_registry.keys())[0]
+            
+        # Reset the HTML inputs so the user can select the same folder again later if they want
+        file_input.value = ""
+        folder_input.value = ""
+        document.getElementById('file-count-display').innerText = "0 files pending."
         
         refresh_file_manager_ui()
         refresh_global_dropdown()
         switch_active_file(None)
-        log(f"Successfully loaded {len(file_registry)} files into memory!")
+        
+        log(f"Successfully added {loaded_count} files! Total in RAM: {len(file_registry)}")
+
+    # NEW: Clear All Memory Logic
+    def clear_all_files(event):
+        global active_filename, file_registry
+        file_registry.clear()
+        active_filename = None
+        
+        refresh_file_manager_ui()
+        refresh_global_dropdown()
+        render_grid_visualizer(None)
+        render_color_injector(None)
+        
+        log("All files have been cleared from memory.")
 
     def refresh_file_manager_ui():
         target = document.getElementById("file-list-target")
+        if not file_registry:
+            target.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No files currently loaded in RAM.</td></tr>'
+            return
+            
         html = ""
         for fname in file_registry.keys():
             html += f"""
@@ -339,6 +386,10 @@
 
     def refresh_global_dropdown():
         select_el = document.getElementById("global-file-select")
+        if not file_registry:
+            select_el.innerHTML = '<option value="">No files loaded</option>'
+            return
+            
         html = ""
         for fname in file_registry.keys():
             selected = "selected" if fname == active_filename else ""
@@ -356,7 +407,7 @@
 
     def batch_run_formatting(event):
         if not file_registry:
-            log("Warning: Load a folder first!")
+            log("Warning: Load files first!")
             return
             
         checkboxes = document.querySelectorAll(".file-checkbox")
@@ -405,7 +456,6 @@
             print(f"========== SINGLE FORMAT ERROR: {e} ==========")
             log(f"Error during formatting: {e}")
 
-    # NEW: RAW TEXT FORMATTER LOGIC
     def format_raw_text(event):
         input_el = document.getElementById("raw-xml-input")
         output_el = document.getElementById("formatted-xml-output")
@@ -418,8 +468,6 @@
         log("Formatting raw XML text...")
         try:
             print("\n========== RAW TEXT FORMAT TRACE ==========")
-            
-            # Spin up an entirely fresh analyzer object that won't disrupt the File Manager
             temp_mod = XMLAnalyzer()
             temp_mod.load_from_string(raw_xml)
             temp_mod.apply_master_formatting()
