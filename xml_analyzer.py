@@ -62,22 +62,23 @@ class XMLAnalyzer:
         size_seg0 = seg0.get("size", "")
         is_seg0_spacer = (size_seg0 == "-4")
         
-        # Helper function to perfectly clone a row's dimension structure
         def create_spacer(base_seg):
             new_seg = copy.deepcopy(base_seg)
             new_seg.set("size", "-4")
             for dim in new_seg.findall("dimension"):
-                for child in list(dim): dim.remove(child) # Strip members/functions
-                ET.SubElement(dim, "formula", ordinal="1.0", dataType="0", label="Formula Label", formulaValue="")
+                for child in list(dim): dim.remove(child) 
+                # THE FIX: Add "0" to formulaValue so EPM cannot suppress it!
+                ET.SubElement(dim, "formula", ordinal="1.0", dataType="0", label="Formula Label", formulaValue="0")
             return new_seg
 
         if is_seg0_formula and is_seg0_spacer:
-            # Rule 1: First row is already an accent row. Do nothing.
-            print("Accent row already exists at index 0.")
-            pass
+            # Rule 1: Ensure existing spacers have the anti-suppression "0"
+            formula_tag = seg0.find(".//formula")
+            if formula_tag is not None and not formula_tag.get("formulaValue"):
+                formula_tag.set("formulaValue", "0")
+            print("Accent row exists. Verified anti-suppression.")
             
         elif is_seg0_formula and not is_seg0_spacer:
-            # Rule 2: First row is a formula, but NOT an accent row. Check the second row.
             needs_spacer = True
             if len(segments) > 1:
                 seg1 = segments[1]
@@ -90,7 +91,6 @@ class XMLAnalyzer:
                 print("Injected accent row at index 1.")
                 
         else:
-            # Rule 3: First row is NOT a formula row. Inject at the very top.
             new_spacer = create_spacer(seg0)
             rows_node.insert(0, new_spacer)
             print("Injected accent row at index 0.")
@@ -118,11 +118,18 @@ class XMLAnalyzer:
                         if child.tag == "formula":
                             dim_items.append({"name": child.get("label", "Formula"), "type": "FORMULA"})
                         elif child.tag == "function":
+                            # Safety check: if a function is ever excluded
+                            if child.get("exclude") == "true": continue
+                            
                             mbr = child.find("member")
                             raw_name = mbr.get("name") if mbr is not None else ""
                             full_func = f"{child.get('name')}({raw_name})"
                             dim_items.append({"name": raw_name, "_debug_name": full_func, "type": "FUNCTION"})
                         elif child.tag == "member":
+                            # THE FIX: Completely ignore any excluded members so the grid maps cleanly
+                            if child.get("exclude") == "true":
+                                continue
+                                
                             dim_items.append({"name": child.get("name", ""), "type": "MEMBER"})
                             
                     if dim_items:
