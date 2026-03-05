@@ -1,12 +1,9 @@
 import xml.etree.ElementTree as ET
 import re
-import inspect
 import copy
 
 class XMLAnalyzer:
     def __init__(self):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
         self.raw_xml_string = ""
         self.safe_header = None
         self.tree = None
@@ -16,8 +13,6 @@ class XMLAnalyzer:
     # --- WEB-FRIENDLY RAM IO FUNCTIONS ---
     # ==========================================
     def load_from_string(self, xml_string):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
         self.raw_xml_string = xml_string
         self.safe_header = self._extract_header_block_from_string(xml_string)
         self.root = ET.fromstring(xml_string)
@@ -44,9 +39,6 @@ class XMLAnalyzer:
     # ==========================================
 
     def ensure_accent_row(self):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
-        
         if self.root is None: return
         
         rows_node = self.root.find(".//query/rows")
@@ -93,8 +85,6 @@ class XMLAnalyzer:
             print("Injected accent row at index 0.")
 
     def get_rowcols(self):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
         if self.root is None:
             return {"rows": [], "columns": []}
             
@@ -149,9 +139,6 @@ class XMLAnalyzer:
         }
 
     def get_format_map(self):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
-        
         format_map = {}
         if self.root is None: return format_map
 
@@ -179,8 +166,6 @@ class XMLAnalyzer:
         return format_map
 
     def apply_master_formatting(self):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside(2): {func_name}")
         if self.root is None: return False
         
         # 1. Mutate the structural XML tree FIRST
@@ -203,14 +188,14 @@ class XMLAnalyzer:
         row_style_id = self.add_advanced_cell_style(bg_color_id=light_blue_id)
         orange_style_id = self.add_advanced_cell_style(bg_color_id=orange_id) 
 
-        # Clean out old DVRs (Safely catching both legacy names and the new Watermarked rules)
+        # Clean out old DVRs (Safely catching both legacy names and the generic Multi-Tool rules)
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is not None:
             dvrs_to_remove = []
             for d in dvr_bucket.findall("dataValidationRule"):
                 rule_name = d.get("name", "")
                 rule_desc = d.get("description", "")
-                if rule_name == "Auto Format Rule" or "Adetth Raju" in rule_desc:
+                if rule_name == "Auto Format Rule" or "EPM XML Multi-Tool" in rule_desc:
                     dvrs_to_remove.append(d)
             for d in dvrs_to_remove: dvr_bucket.remove(d)
 
@@ -246,15 +231,12 @@ class XMLAnalyzer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Data Format (Accent Line)")
                 
             else:
-                # RESTORED: This is the critical line that paints standard Row Metadata Light Blue
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Header Format (Data)")
 
         print("Master DVR formatting complete!")
         return True
 
     def get_detailed_colors(self):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
         if self.root is None: return []
 
         # 1. Map all colors
@@ -307,7 +289,7 @@ class XMLAnalyzer:
         # 5. Format results
         results = []
         for c_id, info in color_data.items():
-            locs = list(set(info["locations"])) # Deduplicate identical targets
+            locs = list(set(info["locations"]))
             loc_display = ", ".join(locs) if locs else "Unused"
             results.append({
                 "id": c_id,
@@ -318,8 +300,7 @@ class XMLAnalyzer:
         return results
 
     def remove_color_and_usages(self, color_id):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name} for ID {color_id}")
+        print(f"Removing Color ID: {color_id}")
         if self.root is None: return
 
         # 1. Identify and remove Cell Styles using this color
@@ -356,8 +337,6 @@ class XMLAnalyzer:
                     colors_bucket.remove(c)
 
     def inject_colors(self, color_list):
-        func_name = inspect.currentframe().f_code.co_name
-        print(f"I am currently running inside: {func_name}")
         if self.root == None: return
 
         color_map = {str(id_data): color_data for id_data, color_data in color_list}
@@ -437,7 +416,7 @@ class XMLAnalyzer:
         new_id = self.get_next_available_id()
         colors_bucket = self.root.find(".//formFormattings/formFormatting/values/colors")
         if colors_bucket is not None:
-            new_color = ET.SubElement(colors_bucket, "color", id=str(new_id), R=str(r), G=str(g), B=str(b))
+            ET.SubElement(colors_bucket, "color", id=str(new_id), R=str(r), G=str(g), B=str(b))
             return new_id
         return None
 
@@ -483,12 +462,10 @@ class XMLAnalyzer:
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is None: return
         
-        # Fallback naming logic just in case
         if not rule_name:
             rule_name = f"Cell [{row_loc}, {col_loc}] Format"
             
-        # The Professional Watermark
-        desc_text = "Automated layout styling rule generated by the EPM XML Multi-Tool. © Adetth Raju"
+        desc_text = "Automated layout styling rule generated by the EPM XML Multi-Tool."
             
         rule = ET.SubElement(dvr_bucket, "dataValidationRule", position="1", name=rule_name, description=desc_text, enabled="true", customStyle="true", rowLocation=str(float(row_loc)), colLocation=str(float(col_loc)))
         
