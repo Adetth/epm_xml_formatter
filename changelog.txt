@@ -9,3 +9,4 @@ v0.14 - Reverted experimental Tuple engine and restored absolute DVR coordinates
 v0.15 - Upgraded Color Injector to a full Data Dictionary. Added Row/Col location mapping, Warning Banner, and Plus/Minus color management.
 v0.15 - Removed repetitive print statements from the logging tab.
 v0.16 - fixed issue with text formatting not working, and made changes to changelog stuff
+v0.16 - added "Made by Adetth Raju" as a footer, and also changed the title of the application

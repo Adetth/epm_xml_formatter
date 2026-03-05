@@ -80,7 +80,10 @@
     <p style="color: var(--text-muted); font-style: italic; margin-top: 20px;">Please check back later.</p>
 </div>
 
-<div class="version-tag" id="app-version-tag">v...</div>
+<div class="version-tag" style="text-align: right;">
+    <div id="app-version-tag">v...</div>
+    <div style="font-size: 10px; margin-top: 2px; font-style: italic; opacity: 0.8;">Made by Adetth Raju</div>
+</div>
 <script>
     fetch('changelog.txt', { cache: "no-store" })
         .then(response => { if (!response.ok) throw new Error("changelog.txt not found"); return response.text(); })
@@ -95,7 +98,7 @@
 </script>
 
 <div class="main-container" id="main-app-container">
-    <h2>Oracle EPM XML Multi-Tool</h2>
+    <h2>Adetth's Oracle EPM XML Multi-Tool</h2>
     
     <div class="global-control-bar">
         <div>
