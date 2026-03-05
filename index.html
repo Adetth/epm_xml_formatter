@@ -73,7 +73,28 @@
     </style>
 </head>
 <body>
+<body>
 
+<script>
+    // Change this to false to disable the entire website
+    const APP_ACTIVATED = true; 
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (!APP_ACTIVATED) {
+            // Hide the actual application
+            document.getElementById("main-app-container").style.display = "none";
+            // Show the offline message
+            document.getElementById("deactivated-message").style.display = "block";
+        }
+    });
+</script>
+
+<div id="deactivated-message" class="main-container" style="display: none; text-align: center; margin-top: 10vh; padding: 50px;">
+    <h1 style="color: var(--accent-blue); font-size: 2.5em; margin-bottom: 10px;">🛠️ Tool Offline</h1>
+    <p style="font-size: 18px; color: var(--text-main);">The Oracle EPM XML Multi-Tool is currently disabled.</p>
+    <p style="color: var(--text-muted); font-style: italic; margin-top: 20px;">Please check back later.</p>
+</div>
+    
 <div class="main-container">
     <h2>Oracle EPM XML Multi-Tool</h2>
     
@@ -495,4 +516,5 @@
 </script>
 
 </body>
+
 </html>
