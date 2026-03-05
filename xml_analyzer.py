@@ -252,22 +252,108 @@ class XMLAnalyzer:
         print("Master DVR formatting complete!")
         return True
 
-    def get_colors(self):
+    def get_detailed_colors(self):
         func_name = inspect.currentframe().f_code.co_name
         print(f"I am currently running inside: {func_name}")
-        if self.root is None:
-            return []
+        if self.root is None: return []
+
+        # 1. Map all colors
+        color_data = {}
+        colors_bucket = self.root.find(".//values/colors")
+        if colors_bucket is not None:
+            for c in colors_bucket.findall("color"):
+                c_id = c.get("id")
+                hex_val = self.rgb_to_hex([c.get("R","0"), c.get("G","0"), c.get("B","0")])
+                color_data[c_id] = {"hex": hex_val, "styles": [], "locations": []}
+
+        # 2. Map Styles -> Colors
+        style_to_color = {}
+        styles_bucket = self.root.find(".//cellStyles")
+        if styles_bucket is not None:
+            for s in styles_bucket.findall("cellStyle"):
+                bg = s.find(".//backColor")
+                if bg is not None and bg.get("id") in color_data:
+                    c_id = bg.get("id")
+                    s_id = s.get("id")
+                    style_to_color[s_id] = c_id
+                    color_data[c_id]["styles"].append(s_id)
+
+        # 3. Map DVRs -> Styles -> Coordinate Locations
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is not None:
+            for dvr in dvr_bucket.findall("dataValidationRule"):
+                cond = dvr.find("dataValidationCond")
+                if cond is not None:
+                    s_id = cond.get("styleId")
+                    if s_id in style_to_color:
+                        c_id = style_to_color[s_id]
+                        r_loc = float(dvr.get("rowLocation", "0"))
+                        c_loc = float(dvr.get("colLocation", "0"))
+                        loc_str = f"R:{int(r_loc)}, C:{int(c_loc)}"
+                        color_data[c_id]["locations"].append(loc_str)
+
+        # 4. Map Tuples -> Styles -> Member Locations
+        tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
+        if tuples_bucket is not None:
+            for t in tuples_bucket.findall("dataCellMbrTuple"):
+                c_id_node = t.find("cellStyleId")
+                if c_id_node is not None and c_id_node.text in style_to_color:
+                    c_id = style_to_color[c_id_node.text]
+                    mbr = t.find(".//mbr")
+                    if mbr is not None:
+                        loc_str = f"Mbr: {mbr.get('name')}"
+                        color_data[c_id]["locations"].append(loc_str)
+
+        # 5. Format results
+        results = []
+        for c_id, info in color_data.items():
+            locs = list(set(info["locations"])) # Deduplicate identical targets
+            loc_display = ", ".join(locs) if locs else "Unused"
+            results.append({
+                "id": c_id,
+                "hex": info["hex"],
+                "locations": loc_display
+            })
             
-        color_data = []
-        colors = self.root.find(".//values/colors")
-        
-        if colors is not None:
-            for color in colors.findall("color"):
-                color_id = color.get("id")
-                r, g, b = color.get("R", "0"), color.get("G", "0"), color.get("B", "0")
-                hex_val = self.rgb_to_hex([r, g, b])
-                color_data.append((color_id, hex_val))
-        return color_data
+        return results
+
+    def remove_color_and_usages(self, color_id):
+        func_name = inspect.currentframe().f_code.co_name
+        print(f"I am currently running inside: {func_name} for ID {color_id}")
+        if self.root is None: return
+
+        # 1. Identify and remove Cell Styles using this color
+        styles_to_remove = set()
+        styles_bucket = self.root.find(".//cellStyles")
+        if styles_bucket is not None:
+            for style in styles_bucket.findall("cellStyle"):
+                bg = style.find(".//backColor")
+                if bg is not None and bg.get("id") == str(color_id):
+                    styles_to_remove.add(style.get("id"))
+                    styles_bucket.remove(style)
+
+        # 2. Remove DVRs using those styles
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is not None:
+            for dvr in dvr_bucket.findall("dataValidationRule"):
+                cond = dvr.find("dataValidationCond")
+                if cond is not None and cond.get("styleId") in styles_to_remove:
+                    dvr_bucket.remove(dvr)
+
+        # 3. Remove Tuples using those styles
+        tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
+        if tuples_bucket is not None:
+            for t in tuples_bucket.findall("dataCellMbrTuple"):
+                c_id_node = t.find("cellStyleId")
+                if c_id_node is not None and c_id_node.text in styles_to_remove:
+                    tuples_bucket.remove(t)
+
+        # 4. Finally, safely remove the color itself
+        colors_bucket = self.root.find(".//values/colors")
+        if colors_bucket is not None:
+            for c in colors_bucket.findall("color"):
+                if c.get("id") == str(color_id):
+                    colors_bucket.remove(c)
 
     def inject_colors(self, color_list):
         func_name = inspect.currentframe().f_code.co_name

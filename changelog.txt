@@ -1,8 +1,9 @@
-v0.15 - Reverted experimental Tuple engine and restored absolute DVR coordinates to fix missing Light Blue row headers.
-v0.14 - Replaced single folder upload with dual File/Folder appending and added a Clear All memory button.
-v0.13 - Changelog issues bugfixes
-v0.12 - Added new tab to take only text input and give out formatted xml as text output
-v0.11 - Added changelog + version display on browser
-v0.10 - Added dynamic tuple generation for runtime segments.
-v0.9 - Implemented batch processing and zip downloads.
-v0.8 - Added orange spacer row structural injection.
+v0.15 - Upgraded Color Injector to a full Data Dictionary. Added Row/Col location mapping, Warning Banner, and Plus/Minus color management.
+v0.14 - Reverted experimental Tuple engine and restored absolute DVR coordinates to fix missing Light Blue row headers.
+v0.13 - Replaced single folder upload with dual File/Folder appending and added a Clear All memory button.
+v0.12 - Changelog issues bugfixes
+v0.11 - Added new tab to take only text input and give out formatted xml as text output
+v0.10 - Added changelog + version display on browser
+v0.9 - Added dynamic tuple generation for runtime segments.
+v0.8 - Implemented batch processing and zip downloads.
+v0.7 - Added orange spacer row structural injection.

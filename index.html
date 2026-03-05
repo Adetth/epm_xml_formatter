@@ -170,19 +170,28 @@
     </div>
 
     <div id="tab-colors" class="tab-content">
-        <button py-click="render_color_injector" class="btn-green">↻ Refresh Colors</button>
-        <button py-click="inject_colors_to_active_file" style="margin-left: 10px;">Inject XML & Download Single File</button>
+        <div style="background: #4a1919; border: 1px solid #e74c3c; padding: 10px; border-radius: 4px; margin-bottom: 15px; color: #ffcccc;">
+            <strong>⚠️ WARNING:</strong> Do not modify or delete colors unless you know exactly what you are doing. Deleting a color will instantly strip all of its associated Row/Col formatting rules from the active XML!
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button py-click="render_color_injector" class="btn-green">↻ Refresh Colors</button>
+            <button py-click="add_color_handler" style="background: #f39c12; border: none; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: 0.2s;">➕ Add Blank Color</button>
+            <button py-click="inject_colors_to_active_file" style="margin-left: auto;">Inject Hex Edits & Download File</button>
+        </div>
         
         <table class="data-table">
             <thead>
                 <tr>
                     <th>ID Name</th>
                     <th>Original Preview</th>
+                    <th>Usage Locations</th>
                     <th>New Hex Code</th>
+                    <th style="text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody id="color-render-target">
-                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Select a file from the dropdown above.</td></tr>
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Select a file from the dropdown above.</td></tr>
             </tbody>
         </table>
     </div>
@@ -543,34 +552,60 @@
         html += "</table>"
         target.innerHTML = html
 
+    # --- TAB 3: COLOR INJECTOR LOGIC ---
     def render_color_injector(event):
         global editable_color_ids
         target = document.getElementById("color-render-target")
         modifier = get_active_modifier()
         
         if not modifier or not modifier.root:
-            target.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No file selected.</td></tr>"
+            target.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No file selected.</td></tr>"
             return
             
-        raw_colors = modifier.get_colors()
-        excluded = {"FFFFFF", "000000", "#FFFFFF", "#000000"}
-        color_list = [c for c in raw_colors if c[1] not in excluded]
-        editable_color_ids = [c[0] for c in color_list]
+        color_list = modifier.get_detailed_colors()
+        editable_color_ids = [c["id"] for c in color_list]
         
         if not color_list:
-            target.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No editable colors found.</td></tr>"
+            target.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No colors found in XML. Click Add Blank Color.</td></tr>"
             return
             
         html = ""
-        for c_id, hex_val in color_list:
+        for c in color_list:
+            c_id = c["id"]
+            hex_val = c["hex"]
+            locs = c["locations"]
+            
+            # Truncate string if a color is mapped to dozens of cells
+            if len(locs) > 55: locs = locs[:52] + "..."
+            
             html += f"""
             <tr>
                 <td style='font-weight: bold;'>{c_id}</td>
                 <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span>#{hex_val}</span></div></td>
+                <td style='font-size: 11px; color: var(--text-muted); max-width: 250px; word-wrap: break-word;'>{locs}</td>
                 <td><div class='flex-row'><span style='color: #aaa;'>#</span><input type='text' id='color_input_{c_id}' value='{hex_val}' oninput="document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
+                <td style='text-align: center;'>
+                    <button class='btn-red btn-small' data-color-id='{c_id}' py-click='delete_color_handler'>➖ Clear</button>
+                </td>
             </tr>
             """
         target.innerHTML = html
+
+    def delete_color_handler(event):
+        c_id = event.currentTarget.getAttribute("data-color-id")
+        modifier = get_active_modifier()
+        if modifier:
+            modifier.remove_color_and_usages(c_id)
+            log(f"Cleared Color {c_id} and stripped its formatting rules from the XML.")
+            render_color_injector(None)
+            render_grid_visualizer(None) # Instantly refresh grid to show removed formats!
+
+    def add_color_handler(event):
+        modifier = get_active_modifier()
+        if modifier:
+            new_id = modifier.add_new_color("255", "255", "255")
+            log(f"Injected new blank color with ID {new_id}. You can edit its Hex now.")
+            render_color_injector(None)
 
     def inject_colors_to_active_file(event):
         modifier = get_active_modifier()
