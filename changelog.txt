@@ -1,3 +1,4 @@
+v0.15 - Reverted experimental Tuple engine and restored absolute DVR coordinates to fix missing Light Blue row headers.
 v0.14 - Replaced single folder upload with dual File/Folder appending and added a Clear All memory button.
 v0.13 - Changelog issues bugfixes
 v0.12 - Added new tab to take only text input and give out formatted xml as text output

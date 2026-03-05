@@ -214,7 +214,7 @@ class XMLAnalyzer:
                     dvrs_to_remove.append(d)
             for d in dvrs_to_remove: dvr_bucket.remove(d)
 
-        # Clean out old Tuples
+        # Clean out old Tuples to prevent data cell color bleeding
         tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
         if tuples_bucket is not None:
             tuples_bucket.clear() 
@@ -222,7 +222,6 @@ class XMLAnalyzer:
         max_col_seg = max((c.get("_segment_idx", 1) for c in grid_data["columns"]), default=0)
         max_row_seg = max((r.get("_segment_idx", 1) for r in grid_data["rows"]), default=0)
 
-        # --- ENGINE 1: DATA VALIDATION RULES (DVRs) ---
         # 1. Paint ALL Column Metadata Dark Blue via strict Location DVRs
         for c_idx in range(max_col_seg):
             self.add_location_dvr(
@@ -230,7 +229,7 @@ class XMLAnalyzer:
                 rule_name=f"Column {c_idx+1} Header Format"
             )
 
-        # 2. Paint Spacer Rows dynamically
+        # 2. Paint Rows dynamically
         for r_idx in range(1, max_row_seg + 1):
             row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
             if not row_info: continue
@@ -247,38 +246,10 @@ class XMLAnalyzer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Data Format (Accent Line)")
                 
             else:
-                pass
+                # RESTORED: This is the critical line that paints standard Row Metadata Light Blue
+                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Header Format (Data)")
 
-        # --- ENGINE 2: TUPLE MEMBER INJECTION ---
-        tuples_container = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
-        if tuples_container is not None:
-            for r_idx in range(1, max_row_seg + 1):
-                row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
-                if not row_info: continue
-                
-                is_formula = (row_info.get("_type") == "FORMULA")
-                is_spacer = (row_info.get("_size") == "-4")
-                
-                if not is_formula and not is_spacer:
-                    dim_name = None
-                    mbr_name = None
-                    
-                    for key, val in row_info.items():
-                        if not key.startswith("_"):
-                            dim_name = key
-                            mbr_name = val
-                            break
-                    
-                    if dim_name and mbr_name:
-                        new_tuple = ET.SubElement(tuples_container, "dataCellMbrTuple")
-                        ET.SubElement(new_tuple, "cellStyleId").text = str(row_style_id)
-                        
-                        frm_tuple = ET.SubElement(new_tuple, "frmMbrTuple")
-                        ET.SubElement(frm_tuple, "gridLocation").text = "rows"
-                        ET.SubElement(frm_tuple, "mbr", name=mbr_name, segment=f"{row_style_id}.0", dim=dim_name)
-                        print(f"Injected Member Tuple: {mbr_name} -> Style {row_style_id}")
-
-        print("Master DVR & Tuple formatting complete!")
+        print("Master DVR formatting complete!")
         return True
 
     def get_colors(self):
