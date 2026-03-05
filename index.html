@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>EPM Formatter Web App</title>
+    
+    <link rel="icon" type="image/svg+xml" href="https://intellicorecg.com/images/intellicore-logo.svg">
+    
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
@@ -55,24 +58,23 @@
         .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
         .color-preview { width: 25px; height: 25px; border: 1px solid #000; border-radius: 4px; box-shadow: 0 0 2px rgba(255,255,255,0.2); flex-shrink: 0; }
 
-        /* --- NEW CONSOLE CSS --- */
-        #console-output {
-            width: 100%;
-            height: 450px;
-            background: #0a0a0a;
-            color: #00ff00; /* Hacker green text */
-            font-family: 'Consolas', 'Courier New', monospace;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            resize: vertical;
-            box-sizing: border-box;
-            line-height: 1.4;
-            overflow-y: auto;
+        /* Console */
+        #console-output { width: 100%; height: 450px; background: #0a0a0a; color: #00ff00; font-family: 'Consolas', 'Courier New', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; resize: vertical; box-sizing: border-box; line-height: 1.4; overflow-y: auto; }
+        
+        /* NEW: Version Tag Styling */
+        .version-tag {
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            color: var(--text-muted);
+            font-family: monospace;
+            font-size: 13px;
+            opacity: 0.7;
+            z-index: 1000;
+            pointer-events: none; /* Prevents it from blocking clicks underneath it */
         }
     </style>
 </head>
-<body>
 <body>
 
 <script>
@@ -81,9 +83,7 @@
 
     document.addEventListener("DOMContentLoaded", () => {
         if (!APP_ACTIVATED) {
-            // Hide the actual application
             document.getElementById("main-app-container").style.display = "none";
-            // Show the offline message
             document.getElementById("deactivated-message").style.display = "block";
         }
     });
@@ -94,7 +94,28 @@
     <p style="font-size: 18px; color: var(--text-main);">The Oracle EPM XML Multi-Tool is currently disabled.</p>
     <p style="color: var(--text-muted); font-style: italic; margin-top: 20px;">Please check back later.</p>
 </div>
-    
+<div class="version-tag" id="app-version-tag">v...</div>
+
+<script>
+    // Asynchronously fetch the changelog file from the server
+    fetch('changelog.txt')
+        .then(response => {
+            if (!response.ok) throw new Error("changelog.txt not found");
+            return response.text();
+        })
+        .then(text => {
+            // Use Regex to find the very first instance of "v" followed by numbers (e.g., v0.10, v1.2.4)
+            const match = text.match(/v\d+\.\d+(\.\d+)?/i);
+            
+            // Inject the matched version, or default to a question mark if the file is formatted weirdly
+            document.getElementById('app-version-tag').innerText = match ? match[0] : "v?.??";
+        })
+        .catch(error => {
+            console.warn("Version fetch failed. Ensure changelog.txt exists.", error);
+            document.getElementById('app-version-tag').innerText = "v0.10"; // Fallback
+        });
+</script>
+
 <div class="main-container" id="main-app-container">
     <h2>Oracle EPM XML Multi-Tool</h2>
     
@@ -234,25 +255,19 @@
     from pyscript import document, window
     from pyodide.ffi import to_js
 
-    # ==========================================
-    # --- MAGIC SYSTEM CONSOLE REDIRECTION ---
-    # ==========================================
     class DOMConsole:
         def write(self, msg):
             console_el = document.getElementById("console-output")
             if console_el:
                 console_el.value += msg
-                # Auto-scroll to the bottom on every new print
                 console_el.scrollTop = console_el.scrollHeight 
 
         def flush(self):
             pass
 
-    # Hijack standard Python print() and Error traces!
     sys.stdout = DOMConsole()
     sys.stderr = DOMConsole()
     print("Python Engine Initialized. DOM Console mounted successfully.")
-    # ==========================================
 
     file_registry = {}
     active_filename = None
@@ -264,10 +279,7 @@
         return None
 
     def log(msg):
-        # Updates the blue status bar
         document.getElementById("status-log").innerText = f"Status: {msg}"
-        
-        # Also prints to our new console, giving context to WHICH file is doing it
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
@@ -516,8 +528,4 @@
 </script>
 
 </body>
-
 </html>
-
-
-
