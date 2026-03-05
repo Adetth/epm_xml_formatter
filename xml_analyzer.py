@@ -13,10 +13,14 @@ class XMLAnalyzer:
     # --- WEB-FRIENDLY RAM IO FUNCTIONS ---
     # ==========================================
     def load_from_string(self, xml_string):
-        self.raw_xml_string = xml_string
-        self.safe_header = self._extract_header_block_from_string(xml_string)
-        self.root = ET.fromstring(xml_string)
-        print("File loaded into RAM successfully.")
+        # Pre-process the XML to safely escape EPM Substitution Variables (e.g., &CurrYear)
+        # This regex looks for an '&' that is NOT already part of a valid XML entity
+        safe_xml_string = re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;|#)', '&amp;', xml_string)
+        
+        self.raw_xml_string = safe_xml_string
+        self.safe_header = self._extract_header_block_from_string(safe_xml_string)
+        self.root = ET.fromstring(safe_xml_string)
+        print("File loaded into RAM and sanitized successfully.")
 
     def _extract_header_block_from_string(self, xml_string):
         pattern = r"(?s)(<form.*?</pipPrefs>)"

@@ -85,10 +85,13 @@
     fetch('changelog.txt', { cache: "no-store" })
         .then(response => { if (!response.ok) throw new Error("changelog.txt not found"); return response.text(); })
         .then(text => {
-            const match = text.match(/v\d+\.\d+(\.\d+)?/i);
-            document.getElementById('app-version-tag').innerText = match ? match[0] : "v?.??";
+            // The 'g' flag tells Regex to find an array of ALL versions in the file
+            const matches = text.match(/v\d+\.\d+(\.\d+)?/gi);
+            
+            // matches[matches.length - 1] grabs the very last item in that array
+            document.getElementById('app-version-tag').innerText = matches ? matches[matches.length - 1] : "v?.??";
         })
-        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.13"; });
+        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.16"; });
 </script>
 
 <div class="main-container" id="main-app-container">
