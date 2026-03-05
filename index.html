@@ -81,13 +81,20 @@
 
 <div class="version-tag" id="app-version-tag">v...</div>
 <script>
-    fetch('changelog.txt')
-        .then(response => { if (!response.ok) throw new Error("changelog.txt not found"); return response.text(); })
+    // The { cache: "no-store" } ensures the browser never reads a stale changelog
+    fetch('changelog.txt', { cache: "no-store" })
+        .then(response => { 
+            if (!response.ok) throw new Error("changelog.txt not found"); 
+            return response.text(); 
+        })
         .then(text => {
             const match = text.match(/v\d+\.\d+(\.\d+)?/i);
             document.getElementById('app-version-tag').innerText = match ? match[0] : "v?.??";
         })
-        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.10"; });
+        .catch(error => { 
+            console.warn("Version fetch failed.", error);
+            document.getElementById('app-version-tag').innerText = "v0.10"; 
+        });
 </script>
 
 <div class="main-container" id="main-app-container">
