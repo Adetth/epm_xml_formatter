@@ -263,8 +263,10 @@
             <input type="hidden" name="access_key" id="form-key-input" value="">
             <input type="hidden" name="redirect" value="https://adetth.github.io/epm_xml_formatter/">
             
-            <input type="text" name="name" class="feedback-input" placeholder="Your Name">
-            <input type="email" name="email" class="feedback-input" placeholder="Your Email">
+            <input type="text" name="name" class="feedback-input" placeholder="Your Name" required>
+            
+            <input type="email" name="email" class="feedback-input" placeholder="Your Email (Optional)">
+            
             <textarea name="message" class="feedback-textarea" placeholder="Describe the issue, feature request in detail" required></textarea>
             
             <div style="display: flex; justify-content: space-between;">
