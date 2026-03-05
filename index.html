@@ -32,6 +32,7 @@
         input[type="file"] { display: none; }
         .custom-file-label { padding: 8px 16px; background: #3a3a3a; color: white; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .custom-file-label:hover { background: #4a4a4a; border-color: var(--accent-blue); }
+        input[type="checkbox"].file-checkbox { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent-green); vertical-align: middle; outline: 1px solid #555; border-radius: 3px; }
         
         /* Tabs */
         .tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
@@ -45,17 +46,6 @@
         .data-table th { background: #2a2a2a; color: #fff; text-align: left; border: 1px solid var(--border-color); padding: 10px; }
         .data-table td { background: var(--bg-container); border: 1px solid var(--border-color); padding: 10px; }
 
-        /* Force Checkboxes to be large and visible in Dark Mode */
-        input[type="checkbox"].file-checkbox {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            accent-color: var(--accent-green);
-            vertical-align: middle;
-            outline: 1px solid #555; /* Adds a hard border so it pops against the dark background */
-            border-radius: 3px;
-        }
-
         /* Grid Visualizer */
         .table-container { overflow-x: auto; max-height: 500px; border: 1px solid var(--border-color); background: #111; padding: 1px; }
         .grid-table { border-collapse: collapse; width: 100%; }
@@ -64,6 +54,22 @@
         input[type="text"] { padding: 6px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; width: 100px; }
         .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
         .color-preview { width: 25px; height: 25px; border: 1px solid #000; border-radius: 4px; box-shadow: 0 0 2px rgba(255,255,255,0.2); flex-shrink: 0; }
+
+        /* --- NEW CONSOLE CSS --- */
+        #console-output {
+            width: 100%;
+            height: 450px;
+            background: #0a0a0a;
+            color: #00ff00; /* Hacker green text */
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            resize: vertical;
+            box-sizing: border-box;
+            line-height: 1.4;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -85,6 +91,7 @@
         <button class="tab-btn active" onclick="switchTab('tab-files', this)">1. File Manager</button>
         <button class="tab-btn" onclick="switchTab('tab-visualizer', this)">2. Grid Visualizer</button>
         <button class="tab-btn" onclick="switchTab('tab-colors', this)">3. Color Injector</button>
+        <button class="tab-btn" onclick="switchTab('tab-console', this)">4. Console Log</button>
     </div>
 
     <div id="tab-files" class="tab-content active">
@@ -92,7 +99,6 @@
             <label for="folder-upload" class="custom-file-label">📁 Select Folder of XMLs</label>
             <input type="file" id="folder-upload" webkitdirectory directory multiple>
             <span id="folder-name-display" style="color: var(--text-muted); font-style: italic;">No folder chosen</span>
-            
             <button py-click="load_folder_to_ram" class="btn-green" style="margin-left: auto;">Load Files</button>
         </div>
 
@@ -130,7 +136,6 @@
             </div>
 
             <button id="refresh-grid-btn" py-click="render_grid_visualizer" style="background: #3a3a3a; color: white; border: 1px solid #555;">↻ Refresh Grid</button>
-            
             <button py-click="format_active_file" class="btn-green">▶ Format & Download Active File</button>
         </div>
         <div class="table-container" id="grid-render-target">
@@ -155,10 +160,17 @@
             </tbody>
         </table>
     </div>
+
+    <div id="tab-console" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span>Real-time Python execution trace and error logs:</span>
+            <button class="btn-small" onclick="document.getElementById('console-output').value=''">Clear Console</button>
+        </div>
+        <textarea id="console-output" readonly spellcheck="false" placeholder="Waiting for Python engine to initialize..."></textarea>
+    </div>
 </div>
 
 <script>
-    // Handle File Input UI text
     document.getElementById('folder-upload').addEventListener('change', function(e) {
         let count = 0;
         for (let i = 0; i < this.files.length; i++) {
@@ -194,29 +206,50 @@
 </py-config>
 
 <script type="py">
+    import sys
     import io
     import zipfile
     from xml_analyzer import XMLAnalyzer
     from pyscript import document, window
     from pyodide.ffi import to_js
 
-    # --- STATE MANAGEMENT ---
-    # Registry format: { "filename.xml": XMLAnalyzer_instance }
+    # ==========================================
+    # --- MAGIC SYSTEM CONSOLE REDIRECTION ---
+    # ==========================================
+    class DOMConsole:
+        def write(self, msg):
+            console_el = document.getElementById("console-output")
+            if console_el:
+                console_el.value += msg
+                # Auto-scroll to the bottom on every new print
+                console_el.scrollTop = console_el.scrollHeight 
+
+        def flush(self):
+            pass
+
+    # Hijack standard Python print() and Error traces!
+    sys.stdout = DOMConsole()
+    sys.stderr = DOMConsole()
+    print("Python Engine Initialized. DOM Console mounted successfully.")
+    # ==========================================
+
     file_registry = {}
     active_filename = None
     editable_color_ids = []
 
     def get_active_modifier():
-        """Returns the XMLAnalyzer instance for the currently selected file."""
         if active_filename and active_filename in file_registry:
             return file_registry[active_filename]
         return None
 
     def log(msg):
+        # Updates the blue status bar
         document.getElementById("status-log").innerText = f"Status: {msg}"
-        print(msg)
+        
+        # Also prints to our new console, giving context to WHICH file is doing it
+        file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
+        print(f"\n{file_prefix} >>> {msg}")
 
-    # --- TAB 1: FILE MANAGER LOGIC ---
     async def load_folder_to_ram(event):
         global active_filename, file_registry
         file_input = document.getElementById("folder-upload")
@@ -228,28 +261,27 @@
         log("Reading files into memory... Please wait.")
         file_registry.clear()
         
-        # Async iterate through the JavaScript FileList
         for i in range(file_input.files.length):
             file = file_input.files.item(i)
             if file.name.lower().endswith(".xml"):
                 text_content = await file.text()
                 try:
+                    print(f"--- Parsing {file.name} ---")
                     mod = XMLAnalyzer()
                     mod.load_from_string(text_content)
                     file_registry[file.name] = mod
                 except Exception as e:
-                    print(f"Skipped {file.name}: Invalid XML format.")
+                    print(f"Skipped {file.name}: Invalid XML format. Error: {e}")
 
         if not file_registry:
             log("Error - No valid XML forms found in the selected folder.")
             return
 
-        # Set the first file as active by default
         active_filename = list(file_registry.keys())[0]
         
         refresh_file_manager_ui()
         refresh_global_dropdown()
-        switch_active_file(None) # Trigger the initial render
+        switch_active_file(None)
         log(f"Successfully loaded {len(file_registry)} files into memory!")
 
     def refresh_file_manager_ui():
@@ -279,7 +311,6 @@
         if select_el.value:
             active_filename = select_el.value
             log(f"Switched inspection to: {active_filename}")
-            # Refresh the visualizer and color tabs for the new file
             render_grid_visualizer(None)
             render_color_injector(None)
 
@@ -288,7 +319,6 @@
             log("Warning: Load a folder first!")
             return
             
-        # Get all checked files from the DOM
         checkboxes = document.querySelectorAll(".file-checkbox")
         selected_files = [cb.value for cb in checkboxes if cb.checked]
         
@@ -298,27 +328,23 @@
             
         log(f"Batch Formatting {len(selected_files)} files... Please wait.")
         
-        # Create a ZIP file in RAM
         memory_zip = io.BytesIO()
         with zipfile.ZipFile(memory_zip, "w", zipfile.ZIP_DEFLATED) as zf:
             for fname in selected_files:
                 mod = file_registry[fname]
                 try:
-                    # Run the logic
+                    print(f"\n========== BEGIN BATCH FORMAT FOR: {fname} ==========")
                     mod.apply_master_formatting()
-                    
-                    # Extract the string and put it in the zip INSIDE a folder
                     xml_str = mod.get_final_xml_string()
                     zf.writestr(f"Formatted_Forms/{fname}", xml_str)
-                    
+                    print(f"========== BATCH FORMAT SUCCESS: {fname} ==========")
                 except Exception as e:
-                    print(f"Failed to format {fname}: {e}")
+                    print(f"========== BATCH FORMAT FAILED: {fname} Error: {e} ==========")
 
-        # Trigger ZIP Download
         download_zip(memory_zip.getbuffer(), "EPM_Formatted_Export.zip")
         log(f"Success! {len(selected_files)} files formatted and downloaded as a ZIP.")
         render_grid_visualizer(None)
-    
+
     def format_active_file(event):
         modifier = get_active_modifier()
         if not modifier or not modifier.root:
@@ -327,24 +353,18 @@
         
         log(f"Running Master Formatting on {active_filename}...")
         try:
-            # 1. Apply formatting logic (and structural accent row injection)
+            print(f"\n========== SINGLE FILE FORMAT TRACE: {active_filename} ==========")
             modifier.apply_master_formatting()
-            
-            # 2. Extract final string
             xml_string = modifier.get_final_xml_string()
-            
-            # 3. Download the single file using its original name
             download_single(xml_string, active_filename)
+            print(f"========== SINGLE FORMAT SUCCESS ==========")
             
             log(f"Formatted and downloaded: {active_filename}")
-            
-            # 4. Refresh the UI so you can instantly see the new Orange Accent Row!
             render_grid_visualizer(None)
-            
         except Exception as e:
+            print(f"========== SINGLE FORMAT ERROR: {e} ==========")
             log(f"Error during formatting: {e}")
 
-    # --- TAB 2: GRID VISUALIZER LOGIC ---
     def get_display_text(item_data, mode):
         real_dims = [k for k in item_data.keys() if not k.startswith("_")]
         if mode == "dimension": return "\n".join([dim[:18] for dim in real_dims])
@@ -405,7 +425,6 @@
         html += "</table>"
         target.innerHTML = html
 
-    # --- TAB 3: COLOR INJECTOR LOGIC ---
     def render_color_injector(event):
         global editable_color_ids
         target = document.getElementById("color-render-target")
@@ -449,21 +468,16 @@
                 
         if clean_data:
             modifier.inject_colors(clean_data)
-            
-            # Download using the EXACT original filename
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
-            
             log(f"Colors updated for {active_filename} and downloaded!")
             render_grid_visualizer(None)
 
-    # --- DOWNLOAD HELPERS ---
     def download_single(xml_string, filename):
         blob = window.Blob.new([xml_string], {type: "text/xml"})
         trigger_browser_download(blob, filename)
 
     def download_zip(zip_buffer, filename):
-        """Converts Python memory bytes into a JavaScript Uint8Array for flawless ZIP downloading."""
         js_array = window.Uint8Array.new(to_js(zip_buffer))
         blob = window.Blob.new([js_array], {type: "application/zip"})
         trigger_browser_download(blob, filename)

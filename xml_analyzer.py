@@ -18,7 +18,6 @@ class XMLAnalyzer:
     def load_from_string(self, xml_string):
         func_name = inspect.currentframe().f_code.co_name
         print(f"I am currently running inside: {func_name}")
-        
         self.raw_xml_string = xml_string
         self.safe_header = self._extract_header_block_from_string(xml_string)
         self.root = ET.fromstring(xml_string)
@@ -44,7 +43,6 @@ class XMLAnalyzer:
         return modified_xml_string
     # ==========================================
 
-    # --- NEW: STRUCTURAL INJECTION ENGINE ---
     def ensure_accent_row(self):
         func_name = inspect.currentframe().f_code.co_name
         print(f"I am currently running inside: {func_name}")
@@ -67,12 +65,11 @@ class XMLAnalyzer:
             new_seg.set("size", "-4")
             for dim in new_seg.findall("dimension"):
                 for child in list(dim): dim.remove(child) 
-                # THE FIX: Add "0" to formulaValue so EPM cannot suppress it!
+                # Anti-Suppression formula "0" 
                 ET.SubElement(dim, "formula", ordinal="1.0", dataType="0", label="Formula Label", formulaValue="0")
             return new_seg
 
         if is_seg0_formula and is_seg0_spacer:
-            # Rule 1: Ensure existing spacers have the anti-suppression "0"
             formula_tag = seg0.find(".//formula")
             if formula_tag is not None and not formula_tag.get("formulaValue"):
                 formula_tag.set("formulaValue", "0")
@@ -118,18 +115,13 @@ class XMLAnalyzer:
                         if child.tag == "formula":
                             dim_items.append({"name": child.get("label", "Formula"), "type": "FORMULA"})
                         elif child.tag == "function":
-                            # Safety check: if a function is ever excluded
                             if child.get("exclude") == "true": continue
-                            
                             mbr = child.find("member")
                             raw_name = mbr.get("name") if mbr is not None else ""
                             full_func = f"{child.get('name')}({raw_name})"
                             dim_items.append({"name": raw_name, "_debug_name": full_func, "type": "FUNCTION"})
                         elif child.tag == "member":
-                            # THE FIX: Completely ignore any excluded members so the grid maps cleanly
-                            if child.get("exclude") == "true":
-                                continue
-                                
+                            if child.get("exclude") == "true": continue
                             dim_items.append({"name": child.get("name", ""), "type": "MEMBER"})
                             
                     if dim_items:
@@ -203,7 +195,7 @@ class XMLAnalyzer:
         dark_blue_id = self.add_new_color("11", "37", "49")
         light_blue_id = self.add_new_color("240", "248", "255")
         white_id = self.add_new_color("255", "255", "255")
-        orange_id = self.add_new_color("255", "140", "0") # The exact EPM Orange
+        orange_id = self.add_new_color("255", "140", "0") 
         
         border_ids = self.inject_standard_borders()
         
@@ -211,11 +203,13 @@ class XMLAnalyzer:
         row_style_id = self.add_advanced_cell_style(bg_color_id=light_blue_id)
         orange_style_id = self.add_advanced_cell_style(bg_color_id=orange_id) 
 
+        # Clean out old DVRs
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is not None:
             dvrs_to_remove = [d for d in dvr_bucket.findall("dataValidationRule") if d.get("name") == "Auto Format Rule"]
             for d in dvrs_to_remove: dvr_bucket.remove(d)
 
+        # Clean out old Tuples
         tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
         if tuples_bucket is not None:
             tuples_bucket.clear() 
@@ -223,14 +217,13 @@ class XMLAnalyzer:
         max_col_seg = max((c.get("_segment_idx", 1) for c in grid_data["columns"]), default=0)
         max_row_seg = max((r.get("_segment_idx", 1) for r in grid_data["rows"]), default=0)
 
-        # 1. Paint ALL Column Metadata Dark Blue
+        # --- ENGINE 1: DATA VALIDATION RULES (DVRs) ---
+        # 1. Paint ALL Column Metadata Dark Blue via strict Location DVRs
         for c_idx in range(max_col_seg):
             self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color="0B2531")
 
         # 2. Paint Row Metadata dynamically based on rules
         for r_idx in range(1, max_row_seg + 1):
-            
-            # Find the properties of this specific structural segment
             row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
             if not row_info: continue
             
@@ -248,11 +241,43 @@ class XMLAnalyzer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00")
                 
             else:
-                # Standard formatting: Light blue for header, blank for data
+                # Fallback DVR so the Python Web Visualizer can still see the Light Blue
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF")
 
-        print("Master DVR formatting complete!")
+        # --- ENGINE 2: TUPLE DIMENSION INJECTION ---
+        # Because EPM drops row DVRs on dynamically expanding members, we inject 
+        # a structural Tuple mapping that forcefully cascades Light Blue to all 
+        # members of the Row dimensions.
+        row_dimensions = set()
+        rows_node = self.root.find(".//query/rows")
+        if rows_node is not None:
+            for dim in rows_node.findall(".//dimension"):
+                dim_name = dim.get("name")
+                if dim_name:
+                    row_dimensions.add(dim_name)
+
+        for dim_name in row_dimensions:
+            self.add_dimension_tuple(style_id=row_style_id, grid_loc="rows", dim_name=dim_name)
+
+        print("Master DVR & Tuple formatting complete!")
         return True
+
+    def add_dimension_tuple(self, style_id, grid_loc, dim_name):
+        """Injects a Data Cell Tuple mapping at the Dimension level."""
+        func_name = inspect.currentframe().f_code.co_name
+        print(f"I am currently running inside: {func_name}")
+        
+        tuples_container = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
+        if tuples_container is None: return
+
+        new_tuple = ET.SubElement(tuples_container, "dataCellMbrTuple")
+        ET.SubElement(new_tuple, "cellStyleId").text = str(style_id)
+
+        frm_tuple = ET.SubElement(new_tuple, "frmMbrTuple")
+        ET.SubElement(frm_tuple, "gridLocation").text = grid_loc
+        # Mapping the dimension name to itself forces EPM to cascade the format
+        ET.SubElement(frm_tuple, "mbr", name=dim_name, segment=f"{style_id}.0", dim=dim_name)
+        print(f"Injected Tuple: {dim_name} -> Style {style_id}")
 
     def get_colors(self):
         func_name = inspect.currentframe().f_code.co_name
