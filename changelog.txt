@@ -10,3 +10,4 @@ v0.15 - Upgraded Color Injector to a full Data Dictionary. Added Row/Col locatio
 v0.15 - Removed repetitive print statements from the logging tab.
 v0.16 - fixed issue with text formatting not working, and made changes to changelog stuff
 v0.16 - added "Made by Adetth Raju" as a footer, and also changed the title of the application
+v0.17 - added feedback button, and implement w3f 

@@ -8,6 +8,33 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
+        /* Floating Feedback Button */
+        .feedback-trigger-btn {
+            position: fixed;
+            bottom: 10px;
+            left: 15px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            transition: 0.2s;
+        }
+        .feedback-trigger-btn:hover {
+            background: #2980b9; /* Slightly darker blue on hover */
+        }
+
+        /* NEW: Feedback Modal Styling */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .feedback-box { background: var(--bg-container); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .feedback-box h3 { margin-top: 0; color: var(--accent-blue); }
+        .feedback-input { width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #555; color: white; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        .feedback-textarea { width: 100%; height: 120px; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #555; color: white; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: inherit; }
         :root {
             --bg-main: #121212; --bg-container: #1e1e1e; --bg-panel: #2a2a2a;
             --text-main: #e0e0e0; --text-muted: #aaaaaa; --border-color: #444444;
@@ -226,6 +253,27 @@
     </div>
 </div>
 
+<button class="feedback-trigger-btn" onclick="document.getElementById('feedback-modal').style.display='flex'">💬 Give Feedback</button>
+
+<div id="feedback-modal" class="modal-overlay">
+    <div class="feedback-box">
+        <h3>Send Feedback / Report Bug</h3>
+        <form action="https://api.web3forms.com/submit" method="POST">
+            <input type="hidden" name="access_key" id="form-key-input" value="">
+            <input type="hidden" name="redirect" value="https://adetth.github.io/epm_xml_formatter/">
+            
+            <input type="text" name="name" class="feedback-input" placeholder="Your Name (Optional)">
+            <input type="email" name="email" class="feedback-input" placeholder="Your Email (Optional)">
+            <textarea name="message" class="feedback-textarea" placeholder="Describe the issue, feature request, or just say hi!..." required></textarea>
+            
+            <div style="display: flex; justify-content: space-between;">
+                <button type="button" class="btn-red" onclick="document.getElementById('feedback-modal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn-green">✉️ Send Message</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // Javascript to handle the Pending Files display
     function updatePendingCount() {
@@ -274,6 +322,13 @@
             console.error('Failed to copy: ', err);
         });
     }
+
+    // Dynamically inject the access key to hide it from GitHub repository scrapers
+    document.addEventListener("DOMContentLoaded", () => {
+        // Replace the string below with your Base64 encoded key
+        const encodedKey = "NjRlZTZhNDgtMmRiZS00ZmQ4LWJkOTQtNWI3MGYwYjkyYTBi"; 
+        document.getElementById('form-key-input').value = atob(encodedKey);
+    });
 </script>
 
 <py-config>
@@ -652,6 +707,5 @@
         window.URL.revokeObjectURL(url)
 
 </script>
-
 </body>
 </html>
