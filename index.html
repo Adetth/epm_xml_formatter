@@ -5,94 +5,201 @@
     <title>EPM Formatter Web App</title>
     
     <link rel="icon" type="image/svg+xml" href="https://intellicorecg.com/images/intellicore-logo.svg">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
     <style>
-        /* NEW: Location Chips for Color Injector */
-        .loc-chip { display: inline-flex; align-items: center; background: #333; padding: 3px 8px; border-radius: 4px; margin: 3px 3px 0 0; font-size: 11px; border: 1px solid #555; }
-        .loc-del { color: #ff6b6b; cursor: pointer; margin-left: 6px; font-weight: bold; border-left: 1px solid #555; padding-left: 6px; }
-        .loc-del:hover { color: #ff0000; }
-
-        /* Floating Feedback Button */
-        .feedback-trigger-btn {
-            position: fixed;
-            bottom: 10px;
-            left: 15px;
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            transition: 0.2s;
-        }
-        .feedback-trigger-btn:hover {
-            background: #2980b9; /* Slightly darker blue on hover */
-        }
-
-        /* NEW: Feedback Modal Styling */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
-        .feedback-box { background: var(--bg-container); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 500px; max-width: 90vw; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
-        .feedback-box h3 { margin-top: 0; margin-bottom: 25px; color: var(--accent-blue); font-size: 1.6em; }
-        .feedback-input { width: 100%; padding: 14px 15px; margin-bottom: 20px; background: #111; border: 1px solid #555; color: white; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 15px; transition: border-color 0.2s; }
-        .feedback-textarea { width: 100%; height: 150px; padding: 14px 15px; margin-bottom: 25px; background: #111; border: 1px solid #555; color: white; border-radius: 6px; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 15px; transition: border-color 0.2s; }
-        .feedback-input:focus, .feedback-textarea:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 8px rgba(52, 152, 219, 0.4); }
         :root {
-            --bg-main: #121212; --bg-container: #1e1e1e; --bg-panel: #2a2a2a;
-            --text-main: #e0e0e0; --text-muted: #aaaaaa; --border-color: #444444;
-            --accent-blue: #3498db; --accent-green: #27ae60; --accent-green-hover: #2ecc71;
+            /* Modern Zinc Theme Palette */
+            --bg-body: #09090b;
+            --bg-container: #18181b;
+            --bg-panel: #27272a;
+            --bg-panel-hover: #3f3f46;
+            
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --border-color: #3f3f46;
+            
+            /* Sleek Accents */
+            --accent-primary: #6366f1; /* Indigo */
+            --accent-primary-hover: #4f46e5;
+            --accent-success: #10b981; /* Emerald */
+            --accent-success-hover: #059669;
+            --accent-danger: #ef4444; /* Red */
+            --accent-danger-hover: #dc2626;
+            --accent-warning: #f59e0b; /* Amber */
+            
             --grid-font-size: 12px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
         }
 
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-main); margin: 0; padding: 20px; color: var(--text-main); color-scheme: dark; }
-        .main-container { max-width: 1000px; margin: auto; background: var(--bg-container); padding: 20px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background: radial-gradient(circle at top, #18181b, var(--bg-body) 80%);
+            margin: 0; padding: 40px 20px; 
+            color: var(--text-main); 
+            min-height: 100vh;
+        }
+
+        .main-container { 
+            max-width: 1100px; margin: auto; 
+            background: var(--bg-container); 
+            padding: 30px; border-radius: 16px; 
+            box-shadow: var(--shadow-lg); 
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h2.app-title { 
+            display: flex; align-items: center; gap: 10px;
+            margin-top: 0; margin-bottom: 25px; 
+            font-size: 1.8rem; font-weight: 700;
+            background: -webkit-linear-gradient(45deg, #a5b4fc, #6366f1);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
         
-        button { padding: 8px 16px; background: #3a3a3a; color: white; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #4a4a4a; }
-        .btn-green { background: var(--accent-green); border: none; }
-        .btn-green:hover { background: var(--accent-green-hover); }
-        .btn-small { padding: 4px 10px; font-size: 14px; }
-        .btn-red { background: #e74c3c; border: none; }
-        .btn-red:hover { background: #c0392b; }
+        /* Modernized Buttons */
+        button { 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px 18px; background: var(--bg-panel); color: var(--text-main); 
+            border: 1px solid var(--border-color); border-radius: 8px; 
+            cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+        button:hover { background: var(--bg-panel-hover); }
         
-        .global-control-bar { background: var(--bg-panel); padding: 15px; border-radius: 6px; border: 1px solid var(--accent-blue); margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
-        select { padding: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; width: 300px; font-size: 14px; }
-        #status-log { padding: 10px; background: #222; border-left: 4px solid var(--accent-blue); font-family: monospace; color: #ccc; flex-grow: 1; margin: 0; }
+        .btn-primary { background: var(--accent-primary); border: none; color: white; }
+        .btn-primary:hover { background: var(--accent-primary-hover); box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
+        .btn-green { background: var(--accent-success); border: none; color: white; }
+        .btn-green:hover { background: var(--accent-success-hover); box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+        .btn-red { background: var(--accent-danger); border: none; color: white; }
+        .btn-red:hover { background: var(--accent-danger-hover); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+        .btn-small { padding: 6px 12px; font-size: 13px; border-radius: 6px; }
         
-        .file-upload-wrapper { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; border: 1px dashed #555;}
-        input[type="file"] { display: none; }
-        .custom-file-label { padding: 8px 16px; background: #3a3a3a; color: white; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .custom-file-label:hover { background: #4a4a4a; border-color: var(--accent-blue); }
-        input[type="checkbox"].file-checkbox { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent-green); vertical-align: middle; outline: 1px solid #555; border-radius: 3px; }
+        /* Glassmorphism Control Bar */
+        .global-control-bar { 
+            background: rgba(39, 39, 42, 0.6); backdrop-filter: blur(12px);
+            padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); 
+            margin-bottom: 30px; display: flex; align-items: center; gap: 20px; 
+        }
+        .control-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        select { 
+            padding: 10px 14px; background: var(--bg-body); color: var(--text-main); 
+            border: 1px solid var(--border-color); border-radius: 8px; 
+            width: 320px; font-size: 14px; font-family: 'Inter', sans-serif;
+            appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+        }
+        select:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
         
-        .tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
-        .tab-btn { background: none; color: var(--text-muted); padding: 10px 20px; border: none; font-size: 16px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
-        .tab-btn.active { color: #ffffff; border-bottom-color: var(--accent-blue); font-weight: bold; }
-        .tab-content { display: none; }
+        #status-log { 
+            padding: 12px 16px; background: var(--bg-body); border-left: 4px solid var(--accent-primary); 
+            border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); 
+            flex-grow: 1; margin: 0; box-shadow: inset var(--shadow-sm);
+        }
+        
+        /* Sleek Pill Tabs */
+        .tabs { 
+            display: inline-flex; gap: 4px; background: var(--bg-body); 
+            padding: 6px; border-radius: 10px; margin-bottom: 25px; 
+            border: 1px solid var(--border-color);
+        }
+        .tab-btn { 
+            background: transparent; border: none; color: var(--text-muted); 
+            padding: 10px 20px; border-radius: 8px; font-weight: 500; font-size: 14px;
+        }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { 
+            background: var(--bg-panel); color: var(--text-main); 
+            box-shadow: var(--shadow-sm); border: 1px solid rgba(255,255,255,0.05);
+        }
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
         .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .data-table th { background: #2a2a2a; color: #fff; text-align: left; border: 1px solid var(--border-color); padding: 10px; }
-        .data-table td { background: var(--bg-container); border: 1px solid var(--border-color); padding: 10px; }
+        /* File Upload Area */
+        .file-upload-wrapper { 
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px; 
+            background: rgba(39, 39, 42, 0.3); padding: 15px; border-radius: 10px; 
+            border: 1px dashed var(--border-color); 
+        }
+        input[type="file"] { display: none; }
+        .custom-file-label { 
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 20px; background: var(--bg-panel); color: var(--text-main); 
+            border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; 
+            font-weight: 600; transition: 0.2s; font-size: 14px;
+        }
+        .custom-file-label:hover { background: var(--bg-panel-hover); border-color: var(--accent-primary); color: var(--accent-primary); }
+        input[type="checkbox"].file-checkbox { 
+            width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-primary); 
+            border-radius: 4px; background: var(--bg-body); border: 1px solid var(--border-color);
+        }
+        
+        /* Modern Data Tables */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; border-radius: 10px; border: 1px solid var(--border-color); overflow: hidden; }
+        .data-table th { background: var(--bg-body); color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
+        .data-table td { background: var(--bg-container); padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
 
-        .table-container { overflow-x: auto; max-height: 500px; border: 1px solid var(--border-color); background: #111; padding: 1px; }
+        /* Grid Visualizer Overrides */
+        .table-container { overflow-x: auto; max-height: 500px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-body); padding: 0; }
         .grid-table { border-collapse: collapse; width: 100%; }
-        .grid-table th, .grid-table td { font-size: var(--grid-font-size); transition: font-size 0.2s; border: 1px solid #111; padding: 8px; text-align: center; min-width: 100px; white-space: pre-wrap; }
+        .grid-table th, .grid-table td { font-size: var(--grid-font-size); transition: font-size 0.2s; border: 1px solid var(--bg-container); padding: 10px; text-align: center; min-width: 100px; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
         
-        input[type="text"] { padding: 6px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px; width: 100px; }
-        .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
-        .color-preview { width: 25px; height: 25px; border: 1px solid #000; border-radius: 4px; box-shadow: 0 0 2px rgba(255,255,255,0.2); flex-shrink: 0; }
-
-        #console-output { width: 100%; height: 450px; background: #0a0a0a; color: #00ff00; font-family: 'Consolas', 'Courier New', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; resize: vertical; box-sizing: border-box; line-height: 1.4; overflow-y: auto; }
+        /* Form Inputs */
+        input[type="text"] { 
+            padding: 8px 12px; background: var(--bg-body); color: var(--text-main); 
+            border: 1px solid var(--border-color); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; transition: 0.2s;
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
         
-        .xml-textarea { width: 100%; height: 250px; background: #0a0a0a; color: #e0e0e0; font-family: 'Consolas', 'Courier New', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; resize: vertical; box-sizing: border-box; line-height: 1.3; margin-bottom: 10px; white-space: pre; overflow: auto; }
-        .xml-textarea:focus { outline: none; border-color: var(--accent-blue); }
+        .flex-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+        .color-preview { width: 28px; height: 28px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); flex-shrink: 0; transition: 0.2s;}
 
-        .version-tag { position: fixed; bottom: 10px; right: 15px; color: var(--text-muted); font-family: monospace; font-size: 13px; opacity: 0.7; z-index: 1000; pointer-events: none; }
+        /* Textareas */
+        .xml-textarea { width: 100%; height: 250px; background: var(--bg-body); color: var(--text-main); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.4; margin-bottom: 15px; white-space: pre; font-size: 13px; }
+        .xml-textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+        #console-output { width: 100%; height: 450px; background: var(--bg-body); color: var(--accent-success); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.5; font-size: 13px; }
+
+        /* Chips & Alerts */
+        .loc-chip { display: inline-flex; align-items: center; background: var(--bg-panel); padding: 4px 10px; border-radius: 20px; margin: 4px 4px 0 0; font-size: 12px; border: 1px solid var(--border-color); font-family: 'JetBrains Mono', monospace; }
+        .loc-del { color: var(--text-muted); cursor: pointer; margin-left: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .loc-del:hover { color: var(--accent-danger); }
+        
+        .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #fcd34d; display: flex; gap: 12px; align-items: flex-start; line-height: 1.5; font-size: 14px; }
+        .alert-warning i { font-size: 20px; color: var(--accent-warning); flex-shrink: 0; }
+
+        /* Floating Utilities */
+        .version-tag { position: fixed; bottom: 15px; right: 20px; text-align: right; z-index: 1000; pointer-events: none; }
+        #app-version-tag { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }
+        .signature { font-size: 11px; margin-top: 4px; color: var(--border-color); font-weight: 500; letter-spacing: 0.5px; }
+        
+        .feedback-trigger-btn { position: fixed; bottom: 15px; left: 20px; background: var(--bg-container); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; z-index: 1000; box-shadow: var(--shadow-lg); transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .feedback-trigger-btn:hover { background: var(--bg-panel); border-color: var(--accent-primary); color: var(--accent-primary); transform: translateY(-2px); }
+
+        /* Feedback Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 9, 11, 0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .feedback-box { background: var(--bg-container); padding: 35px; border-radius: 16px; border: 1px solid var(--border-color); width: 450px; max-width: 90vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalPop { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+        .feedback-box h3 { margin-top: 0; margin-bottom: 20px; color: var(--text-main); font-size: 1.4em; display: flex; align-items: center; gap: 8px; }
+        .feedback-input { width: 100%; padding: 12px 14px; margin-bottom: 15px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
+        .feedback-textarea { width: 100%; height: 120px; padding: 12px 14px; margin-bottom: 25px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; resize: vertical; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
+        .feedback-input:focus, .feedback-textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
     </style>
 </head>
 <body>
@@ -107,35 +214,33 @@
     });
 </script>
 
-<div id="deactivated-message" class="main-container" style="display: none; text-align: center; margin-top: 10vh; padding: 50px;">
-    <h1 style="color: var(--accent-blue); font-size: 2.5em; margin-bottom: 10px;">🛠️ Tool Offline</h1>
-    <p style="font-size: 18px; color: var(--text-main);">The Oracle EPM XML Multi-Tool is currently disabled.</p>
-    <p style="color: var(--text-muted); font-style: italic; margin-top: 20px;">Please check back later.</p>
+<div id="deactivated-message" class="main-container" style="display: none; text-align: center; margin-top: 10vh; padding: 60px;">
+    <h1 style="color: var(--text-main); font-size: 2.5em; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 15px;">
+        <i class="ph-fill ph-wrench" style="color: var(--accent-primary);"></i> Tool Offline
+    </h1>
+    <p style="font-size: 16px; color: var(--text-muted); line-height: 1.6;">The Oracle EPM XML Multi-Tool is currently undergoing maintenance.<br>Please check back later.</p>
 </div>
 
-<div class="version-tag" style="text-align: right;">
+<div class="version-tag">
     <div id="app-version-tag">v...</div>
-    <div style="font-size: 10px; margin-top: 2px; font-style: italic; opacity: 0.8;">Made by Adetth Raju</div>
+    <div class="signature">Made by Adetth Raju</div>
 </div>
 <script>
     fetch('changelog.txt', { cache: "no-store" })
         .then(response => { if (!response.ok) throw new Error("changelog.txt not found"); return response.text(); })
         .then(text => {
-            // The 'g' flag tells Regex to find an array of ALL versions in the file
             const matches = text.match(/v\d+\.\d+(\.\d+)?/gi);
-            
-            // matches[matches.length - 1] grabs the very last item in that array
             document.getElementById('app-version-tag').innerText = matches ? matches[matches.length - 1] : "v?.??";
         })
-        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.16"; });
+        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.18"; });
 </script>
 
 <div class="main-container" id="main-app-container">
-    <h2>Adetth's Oracle EPM XML Multi-Tool</h2>
+    <h2 class="app-title"><i class="ph-fill ph-magic-wand"></i> Oracle EPM XML Multi-Tool</h2>
     
     <div class="global-control-bar">
         <div>
-            <strong>Currently Inspecting:</strong><br>
+            <span class="control-label">Currently Inspecting</span>
             <select id="global-file-select" py-change="switch_active_file">
                 <option value="">No files loaded</option>
             </select>
@@ -144,152 +249,157 @@
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-files', this)">1. File Manager</button>
-        <button class="tab-btn" onclick="switchTab('tab-visualizer', this)">2. Grid Visualizer</button>
-        <button class="tab-btn" onclick="switchTab('tab-colors', this)">3. Color Injector</button>
-        <button class="tab-btn" onclick="switchTab('tab-rawtext', this)">4. Raw Text</button>
-        <button class="tab-btn" onclick="switchTab('tab-console', this)">5. Console Log</button>
+        <button class="tab-btn active" onclick="switchTab('tab-files', this)"><i class="ph ph-folder-open"></i> File Manager</button>
+        <button class="tab-btn" onclick="switchTab('tab-visualizer', this)"><i class="ph ph-grid-four"></i> Grid Visualizer</button>
+        <button class="tab-btn" onclick="switchTab('tab-colors', this)"><i class="ph ph-palette"></i> Color Injector</button>
+        <button class="tab-btn" onclick="switchTab('tab-rawtext', this)"><i class="ph ph-file-code"></i> Raw Text</button>
+        <button class="tab-btn" onclick="switchTab('tab-console', this)"><i class="ph ph-terminal-window"></i> Console Log</button>
     </div>
 
     <div id="tab-files" class="tab-content active">
         <div class="file-upload-wrapper">
-            <label for="file-upload" class="custom-file-label">📄 Add Files</label>
+            <label for="file-upload" class="custom-file-label"><i class="ph ph-file-plus"></i> Add Files</label>
             <input type="file" id="file-upload" multiple accept=".xml">
             
-            <label for="folder-upload" class="custom-file-label">📁 Add Folder</label>
+            <label for="folder-upload" class="custom-file-label"><i class="ph ph-folder-plus"></i> Add Folder</label>
             <input type="file" id="folder-upload" webkitdirectory directory multiple>
             
-            <span id="file-count-display" style="color: var(--text-muted); font-style: italic; margin-left: 10px;">0 files pending</span>
+            <span id="file-count-display" style="color: var(--text-muted); font-size: 13px; margin-left: 10px;">0 files pending</span>
             
             <div style="margin-left: auto; display: flex; gap: 10px;">
-                <button py-click="load_files_to_ram" class="btn-green">Load to RAM</button>
-                <button py-click="clear_all_files" class="btn-red">🗑️ Clear All</button>
+                <button py-click="load_files_to_ram" class="btn-primary"><i class="ph ph-download-simple"></i> Load to RAM</button>
+                <button py-click="clear_all_files"><i class="ph ph-trash"></i> Clear All</button>
             </div>
         </div>
 
-        <div style="margin-top: 20px; display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-            <button class="btn-small" onclick="toggleAllCheckboxes(true)">Check All</button>
-            <button class="btn-small" onclick="toggleAllCheckboxes(false)">Uncheck All</button>
-            <button py-click="batch_run_formatting" class="btn-green" style="margin-left: auto; padding: 10px 20px;">▶ BATCH FORMAT & DOWNLOAD ZIP</button>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <button class="btn-small" onclick="toggleAllCheckboxes(true)"><i class="ph ph-check-square"></i> Check All</button>
+            <button class="btn-small" onclick="toggleAllCheckboxes(false)"><i class="ph ph-square"></i> Uncheck All</button>
+            <button py-click="batch_run_formatting" class="btn-green" style="margin-left: auto; padding: 10px 20px;"><i class="ph-fill ph-play-circle"></i> BATCH FORMAT & ZIP</button>
         </div>
 
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 50px; text-align: center;">Run?</th>
+                    <th style="width: 50px; text-align: center;">Run</th>
                     <th>File Name</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody id="file-list-target">
-                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No files currently loaded in RAM.</td></tr>
+                <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="ph ph-hard-drives" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> No files currently loaded in RAM.</td></tr>
             </tbody>
         </table>
     </div>
 
     <div id="tab-visualizer" class="tab-content">
-        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
-            <label><input type="radio" name="view_mode" value="member" checked onchange="document.getElementById('refresh-grid-btn').click()"> Member Name</label>
-            <label><input type="radio" name="view_mode" value="dimension" onchange="document.getElementById('refresh-grid-btn').click()"> Dimension Name</label>
-            <label><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()"> Row/Col Type</label>
+        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 20px; background: rgba(39, 39, 42, 0.3); padding: 12px 15px; border-radius: 10px; border: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 15px; font-size: 13px; color: var(--text-muted);">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="member" checked onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Member Name</label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="dimension" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Dimension Name</label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Data Type</label>
+            </div>
             
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; background: #2a2a2a; padding: 4px 8px; border-radius: 4px; border: 1px solid #444;">
-                <span style="font-size: 12px; color: #aaa;">Zoom:</span>
-                <button class="btn-small" onclick="changeZoom(-2)">➖</button>
-                <span id="zoom-display" style="width: 30px; text-align: center; font-weight: bold;">12</span>
-                <button class="btn-small" onclick="changeZoom(2)">➕</button>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; background: var(--bg-body); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <button class="btn-small" style="background: transparent; border: none; padding: 4px 8px;" onclick="changeZoom(-2)"><i class="ph ph-minus"></i></button>
+                <span id="zoom-display" style="width: 30px; text-align: center; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px;">12</span>
+                <button class="btn-small" style="background: transparent; border: none; padding: 4px 8px;" onclick="changeZoom(2)"><i class="ph ph-plus"></i></button>
             </div>
 
-            <button id="refresh-grid-btn" py-click="render_grid_visualizer" style="background: #3a3a3a; color: white; border: 1px solid #555;">↻ Refresh Grid</button>
-            <button py-click="strip_all_legacy_handler" class="btn-red" style="margin-right: 15px;">🧹 Strip Legacy Colors (All Forms)</button>
-            <button py-click="format_active_file" class="btn-green">▶ Format & Download Active File</button>
+            <div style="display: flex; gap: 10px;">
+                <button id="refresh-grid-btn" py-click="render_grid_visualizer"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+                <button py-click="strip_all_legacy_handler" class="btn-red"><i class="ph ph-magic-wand"></i> Strip Legacy Colors</button>
+                <button py-click="format_active_file" class="btn-green"><i class="ph-fill ph-play-circle"></i> Format Active File</button>
+            </div>
         </div>
         <div class="table-container" id="grid-render-target">
-            <div style="padding: 20px; background: var(--bg-panel); text-align: center; color: var(--text-muted);">Select a file from the dropdown above.</div>
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);"><i class="ph ph-grid-four" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>Select a file from the dropdown above.</div>
         </div>
     </div>
 
     <div id="tab-colors" class="tab-content">
-        <div style="background: #4a1919; border: 1px solid #e74c3c; padding: 10px; border-radius: 4px; margin-bottom: 15px; color: #ffcccc;">
-            <strong>⚠️ WARNING:</strong> Do not modify or delete colors unless you know exactly what you are doing. Deleting a color will instantly strip all of its associated Row/Col formatting rules from the active XML!
+        <div class="alert-warning">
+            <i class="ph-fill ph-warning"></i>
+            <div>
+                <strong>Warning: Modifying Data Dictionary</strong><br>
+                Do not modify or delete colors unless you know exactly what you are doing. Deleting a color will instantly strip all of its associated Row/Col formatting rules from the active XML!
+            </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <button py-click="render_color_injector" class="btn-green">↻ Refresh Colors</button>
-            <button py-click="add_color_handler" style="background: #f39c12; border: none; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: 0.2s;">➕ Add Blank Color</button>
-            <button py-click="inject_colors_to_active_file" style="margin-left: auto;">Inject Hex Edits & Download File</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button py-click="render_color_injector"><i class="ph ph-arrows-clockwise"></i> Refresh Colors</button>
+            <button py-click="add_color_handler" style="background: var(--accent-warning); color: #000; border: none;"><i class="ph-bold ph-plus"></i> Add Blank Color</button>
+            <button py-click="inject_colors_to_active_file" class="btn-primary" style="margin-left: auto;"><i class="ph-bold ph-paint-brush-broad"></i> Inject Hex & Download</button>
         </div>
         
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>ID Name</th>
-                    <th>Original Preview</th>
+                    <th style="width: 80px;">ID Name</th>
+                    <th style="width: 150px;">Original Preview</th>
                     <th>Usage Locations</th>
-                    <th>New Hex Code</th>
-                    <th style="text-align: center;">Actions</th>
+                    <th style="width: 150px;">New Hex Code</th>
+                    <th style="width: 100px; text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody id="color-render-target">
-                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Select a file from the dropdown above.</td></tr>
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="ph ph-palette" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>Select a file from the dropdown above.</td></tr>
             </tbody>
         </table>
     </div>
 
     <div id="tab-rawtext" class="tab-content">
-        <p style="margin-top: 0;">Bypass file uploads by pasting an EPM XML form directly. This runs in isolation and does not affect your loaded file registry.</p>
+        <p style="margin-top: 0; color: var(--text-muted); font-size: 14px; margin-bottom: 15px;"><i class="ph ph-info" style="vertical-align: middle; margin-right: 5px;"></i>Bypass file uploads by pasting an EPM XML form directly. This runs in isolation and does not affect your loaded file registry.</p>
         
         <textarea id="raw-xml-input" class="xml-textarea" placeholder="Paste your raw, unformatted XML here..."></textarea>
         
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <button py-click="format_raw_text" class="btn-green" style="padding: 10px 20px;">▶ FORMAT RAW TEXT</button>
-            <button class="btn-small" onclick="document.getElementById('raw-xml-input').value=''">Clear Input</button>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <button py-click="format_raw_text" class="btn-green" style="padding: 10px 20px;"><i class="ph-fill ph-play-circle"></i> FORMAT RAW TEXT</button>
+            <button onclick="document.getElementById('raw-xml-input').value=''"><i class="ph ph-eraser"></i> Clear Input</button>
         </div>
         
         <textarea id="formatted-xml-output" class="xml-textarea" readonly placeholder="Your formatted XML will appear here..."></textarea>
         
-        <button class="btn-small" style="background: var(--accent-blue); border: none; font-weight: bold;" onclick="copyRawOutput()">📋 Copy Output to Clipboard</button>
+        <button class="btn-primary" onclick="copyRawOutput()"><i class="ph ph-copy"></i> Copy Output to Clipboard</button>
     </div>
 
     <div id="tab-console" class="tab-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span>Real-time Python execution trace and error logs:</span>
-            <button class="btn-small" onclick="document.getElementById('console-output').value=''">Clear Console</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <span style="font-size: 14px; color: var(--text-muted);"><i class="ph ph-terminal" style="vertical-align: middle; margin-right: 5px;"></i>Real-time Python execution trace and error logs:</span>
+            <button class="btn-small" onclick="document.getElementById('console-output').value=''"><i class="ph ph-eraser"></i> Clear Console</button>
         </div>
         <textarea id="console-output" readonly spellcheck="false" placeholder="Waiting for Python engine to initialize..."></textarea>
     </div>
 </div>
 
-<button class="feedback-trigger-btn" onclick="document.getElementById('feedback-modal').style.display='flex'">💬 Give Feedback</button>
+<button class="feedback-trigger-btn" onclick="document.getElementById('feedback-modal').style.display='flex'">
+    <i class="ph-fill ph-chat-teardrop-text" style="font-size: 18px;"></i> Give Feedback
+</button>
 
 <div id="feedback-modal" class="modal-overlay">
     <div class="feedback-box">
-        <h3>Send Feedback / Report Bug</h3>
+        <h3><i class="ph-fill ph-envelope-simple"></i> Send Feedback</h3>
         <form action="https://api.web3forms.com/submit" method="POST">
             <input type="hidden" name="access_key" id="form-key-input" value="">
             <input type="hidden" name="redirect" value="https://adetth.github.io/epm_xml_formatter/">
             
             <input type="text" name="name" class="feedback-input" placeholder="Your Name" required>
-            
             <input type="email" name="email" class="feedback-input" placeholder="Your Email (Optional)">
+            <textarea name="message" class="feedback-textarea" placeholder="Describe the issue, feature request in detail..." required></textarea>
             
-            <textarea name="message" class="feedback-textarea" placeholder="Describe the issue, feature request in detail" required></textarea>
-            
-            <div style="display: flex; justify-content: space-between;">
-                <button type="button" class="btn-red" onclick="document.getElementById('feedback-modal').style.display='none'">Cancel</button>
-                <button type="submit" class="btn-green">✉️ Send Message</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <button type="button" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color);" onclick="document.getElementById('feedback-modal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn-primary"><i class="ph-fill ph-paper-plane-right"></i> Send Message</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    // Javascript to handle the Pending Files display
     function updatePendingCount() {
         let count = 0;
         let fileInput = document.getElementById('file-upload');
         let folderInput = document.getElementById('folder-upload');
-        
         for (let i = 0; i < fileInput.files.length; i++) {
             if (fileInput.files[i].name.toLowerCase().endsWith('.xml')) count++;
         }
@@ -332,9 +442,7 @@
         });
     }
 
-    // Dynamically inject the access key to hide it from GitHub repository scrapers
     document.addEventListener("DOMContentLoaded", () => {
-        // Replace the string below with your Base64 encoded key
         const encodedKey = "NjRlZTZhNDgtMmRiZS00ZmQ4LWJkOTQtNWI3MGYwYjkyYTBi"; 
         document.getElementById('form-key-input').value = atob(encodedKey);
     });
@@ -381,7 +489,6 @@
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
-    # UPGRADED: Appending Memory Logic
     async def load_files_to_ram(event):
         global active_filename, file_registry
         file_input = document.getElementById("file-upload")
@@ -392,7 +499,6 @@
             return
             
         log("Reading files into memory... Please wait.")
-        
         loaded_count = 0
         
         async def process_file_list(file_list):
@@ -410,7 +516,6 @@
                     except Exception as e:
                         print(f"Skipped {file.name}: Invalid XML format. Error: {e}")
 
-        # Process both inputs and append to the existing registry
         await process_file_list(file_input.files)
         await process_file_list(folder_input.files)
 
@@ -418,11 +523,9 @@
             log("Error - No valid XML forms found.")
             return
 
-        # If this is the first batch loaded, set the active file
         if not active_filename or active_filename not in file_registry:
             active_filename = list(file_registry.keys())[0]
             
-        # Reset the HTML inputs so the user can select the same folder again later if they want
         file_input.value = ""
         folder_input.value = ""
         document.getElementById('file-count-display').innerText = "0 files pending."
@@ -433,23 +536,20 @@
         
         log(f"Successfully added {loaded_count} files! Total in RAM: {len(file_registry)}")
 
-    # NEW: Clear All Memory Logic
     def clear_all_files(event):
         global active_filename, file_registry
         file_registry.clear()
         active_filename = None
-        
         refresh_file_manager_ui()
         refresh_global_dropdown()
         render_grid_visualizer(None)
         render_color_injector(None)
-        
         log("All files have been cleared from memory.")
 
     def refresh_file_manager_ui():
         target = document.getElementById("file-list-target")
         if not file_registry:
-            target.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No files currently loaded in RAM.</td></tr>'
+            target.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="ph ph-hard-drives" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> No files currently loaded in RAM.</td></tr>'
             return
             
         html = ""
@@ -457,8 +557,8 @@
             html += f"""
             <tr>
                 <td style="text-align: center;"><input type="checkbox" class="file-checkbox" value="{fname}" checked></td>
-                <td>{fname}</td>
-                <td style="color: var(--accent-green);">Loaded in RAM</td>
+                <td style="font-family: 'Inter', sans-serif; font-weight: 500;">{fname}</td>
+                <td style="color: var(--accent-success); font-size: 13px; font-weight: 600;"><i class="ph-bold ph-check" style="margin-right: 4px; vertical-align: middle;"></i>Loaded in RAM</td>
             </tr>
             """
         target.innerHTML = html
@@ -574,7 +674,7 @@
         modifier = get_active_modifier()
         
         if not modifier or not modifier.root:
-            target.innerHTML = "<div style='padding:20px; text-align:center;'>No file selected.</div>"
+            target.innerHTML = "<div style='padding:40px; text-align:center; color: var(--text-muted);'><i class='ph ph-grid-four' style='font-size: 32px; display: block; margin-bottom: 10px;'></i>No file selected.</div>"
             return
             
         grid = modifier.get_rowcols()
@@ -583,14 +683,14 @@
         for r in document.getElementsByName("view_mode"):
             if r.checked: mode = r.value
                 
-        html = "<table class='grid-table'><tr><th style='background:#E0E0E0'></th>"
+        html = "<table class='grid-table'><tr><th style='background:#E0E0E0; border-color: #E0E0E0;'></th>"
         
         for col in grid["columns"]:
             seg_idx = col.get("_segment_idx", 1)
             bg = fmt_map.get((0, seg_idx), "#E0E0E0")
             fg = "white" if bg.upper() in ["#0B2531", "#000000"] else "black"
             text = get_display_text(col, mode)
-            html += f"<th style='background-color:{bg}; color:{fg}'>{text}</th>"
+            html += f"<th style='background-color:{bg}; color:{fg}; border-color: #ccc;'>{text}</th>"
         html += "</tr>"
         
         for row in grid["rows"]:
@@ -605,7 +705,7 @@
             bg = fmt_map.get((r_seg_idx, 0), "#E0E0E0")
             fg = "transparent" if is_spacer else ("white" if bg.upper() in ["#0B2531", "#000000"] else "black")
             text = get_display_text(row, mode)
-            html += f"<th style='background-color:{bg}; color:{fg}; {cell_pad_style}'>{text}</th>"
+            html += f"<th style='background-color:{bg}; color:{fg}; border-color: #ccc; {cell_pad_style}'>{text}</th>"
             
             for col in grid["columns"]:
                 c_seg_idx = col.get("_segment_idx", 1)
@@ -616,14 +716,12 @@
                 else: bg_data = "#FFFFFF"
                 
                 fg_data = "transparent" if is_spacer else ("white" if bg_data.upper() in ["#0B2531", "#000000"] else "black")
-                html += f"<td style='background-color:{bg_data}; color:{fg_data}; {cell_pad_style}'>Data</td>"
+                html += f"<td style='background-color:{bg_data}; color:{fg_data}; border-color: #eee; {cell_pad_style}'>Data</td>"
             html += "</tr>"
             
         html += "</table>"
         target.innerHTML = html
 
-    # --- TAB 3: COLOR INJECTOR LOGIC ---
-    # --- NEW: BATCH STRIP LOGIC ---
     def strip_all_legacy_handler(event):
         if not file_registry:
             log("Warning: No files loaded.")
@@ -636,21 +734,20 @@
         render_grid_visualizer(None)
         render_color_injector(None)
 
-    # --- UPGRADED TAB 3: COLOR INJECTOR LOGIC ---
     def render_color_injector(event):
         global editable_color_ids
         target = document.getElementById("color-render-target")
         modifier = get_active_modifier()
         
         if not modifier or not modifier.root:
-            target.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No file selected.</td></tr>"
+            target.innerHTML = "<tr><td colspan='5' style='text-align:center; color: var(--text-muted); padding: 30px;'><i class='ph ph-palette' style='font-size: 24px; display: block; margin-bottom: 8px;'></i>No file selected.</td></tr>"
             return
             
         color_list = modifier.get_detailed_colors()
         editable_color_ids = [c["id"] for c in color_list]
         
         if not color_list:
-            target.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No colors found in XML. Click Add Blank Color.</td></tr>"
+            target.innerHTML = "<tr><td colspan='5' style='text-align:center; color: var(--text-muted); padding: 30px;'><i class='ph ph-palette' style='font-size: 24px; display: block; margin-bottom: 8px;'></i>No colors found in XML. Click Add Blank Color.</td></tr>"
             return
             
         html = ""
@@ -658,27 +755,28 @@
             c_id = c["id"]
             hex_val = c["hex"]
             
-            # Build the interactive chips
             loc_html = ""
             for loc in c["locations_data"]:
                 data_attrs = f"data-cid='{c_id}' data-ltype='{loc['type']}'"
+                icon = "<i class='ph-fill ph-map-pin' style='margin-right:4px; color: var(--accent-primary);'></i>"
                 if loc['type'] == 'dvr':
                     data_attrs += f" data-r='{loc['r']}' data-c='{loc['c']}'"
                 else:
                     data_attrs += f" data-mbr='{loc['mbr']}'"
+                    icon = "<i class='ph-fill ph-tag' style='margin-right:4px; color: var(--accent-warning);'></i>"
                     
-                loc_html += f"<span class='loc-chip'>{loc['display']} <span class='loc-del' {data_attrs} py-click='remove_specific_link'>✖</span></span>"
+                loc_html += f"<span class='loc-chip'>{icon}{loc['display']} <span class='loc-del' {data_attrs} py-click='remove_specific_link'><i class='ph-bold ph-x'></i></span></span>"
                 
-            if not loc_html: loc_html = "<span style='color: var(--text-muted); font-size: 11px;'>Unused</span>"
+            if not loc_html: loc_html = "<span style='color: var(--text-muted); font-size: 12px; font-style: italic;'><i class='ph ph-ghost' style='margin-right: 4px; vertical-align: middle;'></i>Unused</span>"
             
             html += f"""
             <tr>
-                <td style='font-weight: bold;'>{c_id}</td>
-                <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span>#{hex_val}</span></div></td>
-                <td style='max-width: 300px;'>{loc_html}</td>
-                <td><div class='flex-row'><span style='color: #aaa;'>#</span><input type='text' id='color_input_{c_id}' value='{hex_val}' oninput="document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
+                <td style='font-family: \"JetBrains Mono\", monospace; font-weight: 600; color: var(--text-main);'>{c_id}</td>
+                <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span style='font-family: \"JetBrains Mono\", monospace;'>#{hex_val}</span></div></td>
+                <td style='max-width: 320px;'>{loc_html}</td>
+                <td><div class='flex-row'><span style='color: var(--text-muted); font-family: \"JetBrains Mono\", monospace;'>#</span><input type='text' id='color_input_{c_id}' value='{hex_val}' oninput=\"document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value\"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
                 <td style='text-align: center;'>
-                    <button class='btn-red btn-small' data-color-id='{c_id}' py-click='delete_color_handler'>Delete Core Color</button>
+                    <button class='btn-red btn-small' data-color-id='{c_id}' py-click='delete_color_handler' style='background: transparent; color: var(--accent-danger); border: 1px solid var(--accent-danger);'><i class='ph-bold ph-trash'></i> Delete</button>
                 </td>
             </tr>
             """
@@ -733,8 +831,10 @@
                 
         if clean_data:
             modifier.inject_colors(clean_data)
+            
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
+            
             log(f"Colors updated for {active_filename} and downloaded!")
             render_grid_visualizer(None)
 
