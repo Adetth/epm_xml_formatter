@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
+        /* NEW: Location Chips for Color Injector */
+        .loc-chip { display: inline-flex; align-items: center; background: #333; padding: 3px 8px; border-radius: 4px; margin: 3px 3px 0 0; font-size: 11px; border: 1px solid #555; }
+        .loc-del { color: #ff6b6b; cursor: pointer; margin-left: 6px; font-weight: bold; border-left: 1px solid #555; padding-left: 6px; }
+        .loc-del:hover { color: #ff0000; }
+
         /* Floating Feedback Button */
         .feedback-trigger-btn {
             position: fixed;
@@ -196,6 +201,7 @@
             </div>
 
             <button id="refresh-grid-btn" py-click="render_grid_visualizer" style="background: #3a3a3a; color: white; border: 1px solid #555;">↻ Refresh Grid</button>
+            <button py-click="strip_all_legacy_handler" class="btn-red" style="margin-right: 15px;">🧹 Strip Legacy Colors (All Forms)</button>
             <button py-click="format_active_file" class="btn-green">▶ Format & Download Active File</button>
         </div>
         <div class="table-container" id="grid-render-target">
@@ -617,6 +623,20 @@
         target.innerHTML = html
 
     # --- TAB 3: COLOR INJECTOR LOGIC ---
+    # --- NEW: BATCH STRIP LOGIC ---
+    def strip_all_legacy_handler(event):
+        if not file_registry:
+            log("Warning: No files loaded.")
+            return
+            
+        for fname, mod in file_registry.items():
+            mod.strip_legacy_formatting()
+            
+        log(f"Successfully stripped legacy colors and styling overrides from ALL {len(file_registry)} forms in memory.")
+        render_grid_visualizer(None)
+        render_color_injector(None)
+
+    # --- UPGRADED TAB 3: COLOR INJECTOR LOGIC ---
     def render_color_injector(event):
         global editable_color_ids
         target = document.getElementById("color-render-target")
@@ -637,32 +657,60 @@
         for c in color_list:
             c_id = c["id"]
             hex_val = c["hex"]
-            locs = c["locations"]
             
-            # Truncate string if a color is mapped to dozens of cells
-            if len(locs) > 55: locs = locs[:52] + "..."
+            # Build the interactive chips
+            loc_html = ""
+            for loc in c["locations_data"]:
+                data_attrs = f"data-cid='{c_id}' data-ltype='{loc['type']}'"
+                if loc['type'] == 'dvr':
+                    data_attrs += f" data-r='{loc['r']}' data-c='{loc['c']}'"
+                else:
+                    data_attrs += f" data-mbr='{loc['mbr']}'"
+                    
+                loc_html += f"<span class='loc-chip'>{loc['display']} <span class='loc-del' {data_attrs} py-click='remove_specific_link'>✖</span></span>"
+                
+            if not loc_html: loc_html = "<span style='color: var(--text-muted); font-size: 11px;'>Unused</span>"
             
             html += f"""
             <tr>
                 <td style='font-weight: bold;'>{c_id}</td>
                 <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span>#{hex_val}</span></div></td>
-                <td style='font-size: 11px; color: var(--text-muted); max-width: 250px; word-wrap: break-word;'>{locs}</td>
+                <td style='max-width: 300px;'>{loc_html}</td>
                 <td><div class='flex-row'><span style='color: #aaa;'>#</span><input type='text' id='color_input_{c_id}' value='{hex_val}' oninput="document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
                 <td style='text-align: center;'>
-                    <button class='btn-red btn-small' data-color-id='{c_id}' py-click='delete_color_handler'>➖ Clear</button>
+                    <button class='btn-red btn-small' data-color-id='{c_id}' py-click='delete_color_handler'>Delete Core Color</button>
                 </td>
             </tr>
             """
         target.innerHTML = html
+
+    def remove_specific_link(event):
+        el = event.currentTarget
+        c_id = el.getAttribute("data-cid")
+        loc_type = el.getAttribute("data-ltype")
+        
+        loc_data = {"type": loc_type}
+        if loc_type == "dvr":
+            loc_data["r"] = el.getAttribute("data-r")
+            loc_data["c"] = el.getAttribute("data-c")
+        else:
+            loc_data["mbr"] = el.getAttribute("data-mbr")
+            
+        modifier = get_active_modifier()
+        if modifier:
+            modifier.remove_specific_color_link(c_id, loc_data)
+            log(f"Removed specific {loc_type.upper()} styling link.")
+            render_color_injector(None)
+            render_grid_visualizer(None)
 
     def delete_color_handler(event):
         c_id = event.currentTarget.getAttribute("data-color-id")
         modifier = get_active_modifier()
         if modifier:
             modifier.remove_color_and_usages(c_id)
-            log(f"Cleared Color {c_id} and stripped its formatting rules from the XML.")
+            log(f"Cleared Core Color {c_id} and stripped its formatting rules from the XML.")
             render_color_injector(None)
-            render_grid_visualizer(None) # Instantly refresh grid to show removed formats!
+            render_grid_visualizer(None) 
 
     def add_color_handler(event):
         modifier = get_active_modifier()

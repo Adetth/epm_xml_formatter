@@ -169,13 +169,42 @@ class XMLAnalyzer:
 
         return format_map
 
+    def strip_legacy_formatting(self):
+        """Removes visual formatting safely without deleting functional data limits."""
+        if self.root is None: return False
+        
+        # 1. Purge legacy member tuples (These override DVRs and cause the row 3 bug!)
+        tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
+        if tuples_bucket is not None:
+            tuples_bucket.clear()
+            
+        # 2. Clean Data Validation Rules
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is not None:
+            dvrs_to_remove = []
+            for dvr in dvr_bucket.findall("dataValidationRule"):
+                if dvr.get("customStyle") == "true":
+                    cond = dvr.find("dataValidationCond")
+                    # If the DVR checks for nothing (value="") it's just a paint bucket rule. Delete it.
+                    if cond is not None and cond.get("type") == "8" and (cond.find("compareValue") is None or cond.find("compareValue").get("value") == ""):
+                        dvrs_to_remove.append(dvr)
+                    else:
+                        # It has real logic (like limiting data input). Just strip the color styling.
+                        dvr.set("customStyle", "false")
+                        if cond is not None:
+                            cond.attrib.pop("styleId", None)
+                            cond.attrib.pop("bgColor", None)
+            for d in dvrs_to_remove:
+                dvr_bucket.remove(d)
+        print("Legacy formatting stripped.")
+        return True
+
     def apply_master_formatting(self):
         if self.root is None: return False
         
-        # 1. Mutate the structural XML tree FIRST
+        # Strip old formatting FIRST so our new layout reigns supreme
+        self.strip_legacy_formatting()
         self.ensure_accent_row()
-        
-        # 2. Extract the fresh layout SECOND
         grid_data = self.get_rowcols()
         
         self.setup_formatting_foundation()
@@ -187,38 +216,16 @@ class XMLAnalyzer:
         orange_id = self.add_new_color("255", "140", "0") 
         
         border_ids = self.inject_standard_borders()
-        
         col_style_id = self.add_advanced_cell_style(bg_color_id=dark_blue_id, txt_color_id=white_id, is_bold=True, border_ids=border_ids)
         row_style_id = self.add_advanced_cell_style(bg_color_id=light_blue_id)
         orange_style_id = self.add_advanced_cell_style(bg_color_id=orange_id) 
 
-        # Clean out old DVRs (Safely catching both legacy names and the generic Multi-Tool rules)
-        dvr_bucket = self.root.find(".//dataValidationRules")
-        if dvr_bucket is not None:
-            dvrs_to_remove = []
-            for d in dvr_bucket.findall("dataValidationRule"):
-                rule_name = d.get("name", "")
-                rule_desc = d.get("description", "")
-                if rule_name == "Auto Format Rule" or "EPM XML Multi-Tool" in rule_desc:
-                    dvrs_to_remove.append(d)
-            for d in dvrs_to_remove: dvr_bucket.remove(d)
-
-        # Clean out old Tuples to prevent data cell color bleeding
-        tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
-        if tuples_bucket is not None:
-            tuples_bucket.clear() 
-
         max_col_seg = max((c.get("_segment_idx", 1) for c in grid_data["columns"]), default=0)
         max_row_seg = max((r.get("_segment_idx", 1) for r in grid_data["rows"]), default=0)
 
-        # 1. Paint ALL Column Metadata Dark Blue via strict Location DVRs
         for c_idx in range(max_col_seg):
-            self.add_location_dvr(
-                row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color="0B2531", 
-                rule_name=f"Column {c_idx+1} Header Format"
-            )
+            self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color="0B2531", rule_name=f"Column {c_idx+1} Header Format")
 
-        # 2. Paint Rows dynamically
         for r_idx in range(1, max_row_seg + 1):
             row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
             if not row_info: continue
@@ -229,21 +236,17 @@ class XMLAnalyzer:
             if r_idx == 1 and is_formula and not is_spacer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=col_style_id, hex_color="0B2531", rule_name=f"Row {r_idx} Header Format (Formula)")
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=col_style_id, hex_color="0B2531", rule_name=f"Row {r_idx} Data Format (Formula)")
-                
             elif is_formula and is_spacer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Header Format (Accent Line)")
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Data Format (Accent Line)")
-                
             else:
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Header Format (Data)")
 
-        print("Master DVR formatting complete!")
         return True
 
     def get_detailed_colors(self):
         if self.root is None: return []
 
-        # 1. Map all colors
         color_data = {}
         colors_bucket = self.root.find(".//values/colors")
         if colors_bucket is not None:
@@ -252,7 +255,6 @@ class XMLAnalyzer:
                 hex_val = self.rgb_to_hex([c.get("R","0"), c.get("G","0"), c.get("B","0")])
                 color_data[c_id] = {"hex": hex_val, "styles": [], "locations": []}
 
-        # 2. Map Styles -> Colors
         style_to_color = {}
         styles_bucket = self.root.find(".//cellStyles")
         if styles_bucket is not None:
@@ -264,7 +266,6 @@ class XMLAnalyzer:
                     style_to_color[s_id] = c_id
                     color_data[c_id]["styles"].append(s_id)
 
-        # 3. Map DVRs -> Styles -> Coordinate Locations
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is not None:
             for dvr in dvr_bucket.findall("dataValidationRule"):
@@ -273,12 +274,11 @@ class XMLAnalyzer:
                     s_id = cond.get("styleId")
                     if s_id in style_to_color:
                         c_id = style_to_color[s_id]
-                        r_loc = float(dvr.get("rowLocation", "0"))
-                        c_loc = float(dvr.get("colLocation", "0"))
-                        loc_str = f"R:{int(r_loc)}, C:{int(c_loc)}"
-                        color_data[c_id]["locations"].append(loc_str)
+                        r_loc = dvr.get("rowLocation", "0")
+                        c_loc = dvr.get("colLocation", "0")
+                        loc_dict = {"type": "dvr", "r": r_loc, "c": c_loc, "display": f"R:{int(float(r_loc))}, C:{int(float(c_loc))}"}
+                        color_data[c_id]["locations"].append(loc_dict)
 
-        # 4. Map Tuples -> Styles -> Member Locations
         tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
         if tuples_bucket is not None:
             for t in tuples_bucket.findall("dataCellMbrTuple"):
@@ -287,21 +287,48 @@ class XMLAnalyzer:
                     c_id = style_to_color[c_id_node.text]
                     mbr = t.find(".//mbr")
                     if mbr is not None:
-                        loc_str = f"Mbr: {mbr.get('name')}"
-                        color_data[c_id]["locations"].append(loc_str)
+                        loc_dict = {"type": "tuple", "mbr": mbr.get("name"), "display": f"Mbr: {mbr.get('name')}"}
+                        color_data[c_id]["locations"].append(loc_dict)
 
-        # 5. Format results
         results = []
         for c_id, info in color_data.items():
-            locs = list(set(info["locations"]))
-            loc_display = ", ".join(locs) if locs else "Unused"
-            results.append({
-                "id": c_id,
-                "hex": info["hex"],
-                "locations": loc_display
-            })
+            unique_locs = []
+            seen = set()
+            for loc in info["locations"]:
+                if loc["display"] not in seen:
+                    seen.add(loc["display"])
+                    unique_locs.append(loc)
+            results.append({"id": c_id, "hex": info["hex"], "locations_data": unique_locs})
             
         return results
+
+    def remove_specific_color_link(self, color_id, loc_data):
+        styles_bucket = self.root.find(".//cellStyles")
+        style_ids = []
+        if styles_bucket is not None:
+            for style in styles_bucket.findall("cellStyle"):
+                bg = style.find(".//backColor")
+                if bg is not None and bg.get("id") == str(color_id):
+                    style_ids.append(style.get("id"))
+                    
+        if loc_data["type"] == "dvr":
+            dvr_bucket = self.root.find(".//dataValidationRules")
+            if dvr_bucket is not None:
+                for dvr in dvr_bucket.findall("dataValidationRule"):
+                    if dvr.get("rowLocation") == loc_data["r"] and dvr.get("colLocation") == loc_data["c"]:
+                        cond = dvr.find("dataValidationCond")
+                        if cond is not None and cond.get("styleId") in style_ids:
+                            dvr_bucket.remove(dvr)
+                            
+        elif loc_data["type"] == "tuple":
+            tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
+            if tuples_bucket is not None:
+                for t in tuples_bucket.findall("dataCellMbrTuple"):
+                    c_id_node = t.find("cellStyleId")
+                    if c_id_node is not None and c_id_node.text in style_ids:
+                        mbr = t.find(".//mbr")
+                        if mbr is not None and mbr.get("name") == loc_data["mbr"]:
+                            tuples_bucket.remove(t)
 
     def remove_color_and_usages(self, color_id):
         print(f"Removing Color ID: {color_id}")
