@@ -8,13 +8,11 @@ class XMLAnalyzer:
         self.safe_header = None
         self.tree = None
         self.root = None
-        self.history = []  # NEW: Undo History Stack
+        self.history = []
 
-    # --- NEW: STATE MANAGEMENT ---
     def save_state(self):
         if self.root is not None:
             self.history.append(ET.tostring(self.root, encoding="UTF-8").decode("UTF-8"))
-            # Keep the last 15 actions in memory to prevent browser RAM bloating
             if len(self.history) > 15:
                 self.history.pop(0)
 
@@ -30,7 +28,7 @@ class XMLAnalyzer:
         self.raw_xml_string = safe_xml_string
         self.safe_header = self._extract_header_block_from_string(safe_xml_string)
         self.root = ET.fromstring(safe_xml_string)
-        self.history.clear() # Reset history on fresh load
+        self.history.clear()
         print("File loaded into RAM and sanitized successfully.")
 
     def _extract_header_block_from_string(self, xml_string):
@@ -68,7 +66,9 @@ class XMLAnalyzer:
             return new_seg
 
         if is_seg0_formula and is_seg0_spacer:
-            pass
+            formula_tag = seg0.find(".//formula")
+            if formula_tag is not None and not formula_tag.get("formulaValue"):
+                formula_tag.set("formulaValue", "0")
         elif is_seg0_formula and not is_seg0_spacer:
             needs_spacer = True
             if len(segments) > 1:
@@ -121,37 +121,45 @@ class XMLAnalyzer:
                         c["_segment_idx"] = s_idx + 1 
                         container_list.append(c)
             return container_list
-
         return {"rows": parse_segments(".//query/rows"), "columns": parse_segments(".//query/columns")}
 
+    # UPGRADED: Extracts txtColor dynamically
     def get_format_map(self):
         format_map = {}
         if self.root is None: return format_map
+
         colors_dict = {c.get("id"): f"#{int(c.get('R', '0')):02X}{int(c.get('G', '0')):02X}{int(c.get('B', '0')):02X}"
                        for c in self.root.findall(".//values/colors/color")}
         style_to_hex = {}
+        
         for style in self.root.findall(".//cellStyles/cellStyle"):
             bg = style.find(".//backColor")
-            if bg is not None and bg.get("id") in colors_dict:
-                style_to_hex[style.get("id")] = colors_dict[bg.get("id")]
+            fg = style.find(".//txtColor")
+            
+            bg_hex = colors_dict.get(bg.get("id")) if bg is not None else None
+            fg_hex = colors_dict.get(fg.get("id")) if fg is not None else None
+            
+            style_to_hex[style.get("id")] = {"bg": bg_hex, "fg": fg_hex}
 
         for dvr in self.root.findall(".//dataValidationRules/dataValidationRule"):
             try:
                 r_loc = int(float(dvr.get("rowLocation", "0")))
                 c_loc = int(float(dvr.get("colLocation", "0")))
                 cond = dvr.find("dataValidationCond")
+                
                 if cond is not None and cond.get("styleId") in style_to_hex:
                     format_map[(r_loc, c_loc)] = style_to_hex[cond.get("styleId")]
-            except ValueError: pass
+            except ValueError: 
+                pass
+
         return format_map
 
     def strip_legacy_formatting(self):
         if self.root is None: return False
-        self.save_state() # STATE CAPTURE
+        self.save_state() 
         
         tuples_bucket = self.root.find(".//formFormattings/formFormatting/dataCellMbrTuples")
-        if tuples_bucket is not None:
-            tuples_bucket.clear()
+        if tuples_bucket is not None: tuples_bucket.clear()
             
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is not None:
@@ -166,15 +174,13 @@ class XMLAnalyzer:
                         if cond is not None:
                             cond.attrib.pop("styleId", None)
                             cond.attrib.pop("bgColor", None)
-            for d in dvrs_to_remove:
-                dvr_bucket.remove(d)
+            for d in dvrs_to_remove: dvr_bucket.remove(d)
         return True
 
     def apply_master_formatting(self):
         if self.root is None: return False
-        self.save_state() # STATE CAPTURE
+        self.save_state() 
         
-        # Bypass saving state twice
         temp_history = self.history.copy()
         self.strip_legacy_formatting()
         self.history = temp_history 
@@ -279,7 +285,7 @@ class XMLAnalyzer:
 
     def remove_specific_color_link(self, color_id, loc_data):
         if self.root is None: return
-        self.save_state() # STATE CAPTURE
+        self.save_state() 
         
         styles_bucket = self.root.find(".//cellStyles")
         style_ids = []
@@ -310,7 +316,7 @@ class XMLAnalyzer:
 
     def remove_color_and_usages(self, color_id):
         if self.root is None: return
-        self.save_state() # STATE CAPTURE
+        self.save_state() 
         
         styles_to_remove = set()
         styles_bucket = self.root.find(".//cellStyles")
@@ -340,7 +346,7 @@ class XMLAnalyzer:
 
     def inject_colors(self, color_list):
         if self.root == None: return
-        self.save_state() # STATE CAPTURE
+        self.save_state() 
         
         color_map = {str(id_data): color_data for id_data, color_data in color_list}
         colors = self.root.find(".//values/colors")  
@@ -400,8 +406,7 @@ class XMLAnalyzer:
         return highest_id + 1
 
     def add_new_color(self, r, g, b, ignore_history=False):
-        if not ignore_history:
-            self.save_state() # STATE CAPTURE
+        if not ignore_history: self.save_state()
             
         colors_bucket = self.root.find(".//formFormattings/formFormatting/values/colors")
         if colors_bucket is not None:
@@ -452,6 +457,58 @@ class XMLAnalyzer:
         cond = ET.SubElement(rule, "dataValidationCond", toolTip="", groupOpenNestingLevel="0", operator="0", displayMessageInDVPane="false", honorPmRules="false", negate="false", groupCloseNestingLevel="0", position="1", styleId=str(style_id), type="8", bgColor=decimal_color, Valid="true", logicalOperator="0")
         ET.SubElement(cond, "compareValue", type="6", value="")
         ET.SubElement(cond, "compareToValue", type="0", value="")
+
+    def inject_cell_color(self, r_loc, c_loc, hex_color):
+        if self.root is None: return False
+        self.save_state() 
+
+        clean_hex = hex_color.replace("#", "").upper()
+        
+        colors_bucket = self.root.find(".//values/colors")
+        color_id = None
+        if colors_bucket is not None:
+            for c in colors_bucket.findall("color"):
+                if self.rgb_to_hex([c.get("R","0"), c.get("G","0"), c.get("B","0")]) == clean_hex:
+                    color_id = c.get("id")
+                    break
+        
+        if not color_id:
+            rgb = self.hex_to_rgb([clean_hex])[0]
+            color_id = self.add_new_color(rgb[0], rgb[1], rgb[2], ignore_history=True)
+
+        styles_bucket = self.root.find(".//cellStyles")
+        style_id = None
+        if styles_bucket is not None:
+            for s in styles_bucket.findall("cellStyle"):
+                bg = s.find(".//backColor")
+                if bg is not None and bg.get("id") == str(color_id):
+                    style_id = s.get("id")
+                    break
+                    
+        if not style_id:
+            style_id = self.add_advanced_cell_style(bg_color_id=color_id)
+
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is None: return False
+            
+        decimal_color = str(int(clean_hex, 16))
+        rule_found = False
+        
+        for dvr in dvr_bucket.findall("dataValidationRule"):
+            if dvr.get("rowLocation") == str(float(r_loc)) and dvr.get("colLocation") == str(float(c_loc)):
+                dvr.set("customStyle", "true")
+                cond = dvr.find("dataValidationCond")
+                if cond is not None:
+                    cond.set("styleId", str(style_id))
+                    cond.set("bgColor", decimal_color)
+                    cond.set("type", "8") 
+                rule_found = True
+                break
+                
+        if not rule_found:
+            self.add_location_dvr(row_loc=r_loc, col_loc=c_loc, style_id=style_id, hex_color=clean_hex, rule_name=f"Interactive Cell [{r_loc}, {c_loc}]")
+            
+        return True
 
     @staticmethod
     def rgb_to_hex(color_list):

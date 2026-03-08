@@ -2,389 +2,452 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>EPM Formatter Web App</title>
+    <title>Oracle EPM Multi-Tool</title>
     
     <link rel="icon" type="image/svg+xml" href="https://intellicorecg.com/images/intellicore-logo.svg">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-ocean.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
 
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <style>
         :root {
-            --bg-body: #09090b;
-            --bg-container: #18181b;
-            --bg-panel: #27272a;
-            --bg-panel-hover: #3f3f46;
+            --bg-deep: #030305;
+            --glass-bg: rgba(15, 15, 20, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
             
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
-            --border-color: #3f3f46;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
             
-            --accent-primary: #6366f1; 
-            --accent-primary-hover: #4f46e5;
-            --accent-success: #10b981; 
-            --accent-success-hover: #059669;
-            --accent-danger: #ef4444; 
-            --accent-danger-hover: #dc2626;
-            --accent-warning: #f59e0b; 
+            --neon-cyan: #00f0ff;
+            --neon-purple: #8b5cf6;
+            --neon-green: #10b981;
+            --neon-red: #f43f5e;
+            --neon-amber: #f59e0b;
             
             --grid-font-size: 12px;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+            --sidebar-width: 260px;
         }
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #09090b; }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        /* WebKit Hide Scrollbar Hack */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-highlight); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        
+        .hide-scroll::-webkit-scrollbar { display: none !important; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
         body { 
-            font-family: 'Inter', system-ui, sans-serif; 
-            background: radial-gradient(circle at top, #18181b, #09090b 80%);
-            margin: 0; padding: 40px 20px; 
-            color: var(--text-main); 
-            min-height: 100vh;
+            font-family: 'Outfit', sans-serif; 
+            background-color: var(--bg-deep);
+            margin: 0; padding: 0; color: var(--text-main); 
+            height: 100vh; overflow: hidden; display: flex;
         }
 
-        .main-container { 
-            max-width: 1100px; margin: auto; 
-            background: var(--bg-container); 
-            padding: 30px; border-radius: 16px; 
-            box-shadow: var(--shadow-lg); 
-            border: 1px solid rgba(255,255,255,0.05);
-        }
+        /* Animated Ambient Background */
+        .ambient-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; background: #000; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.5; animation: float 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+        .orb-1 { width: 50vw; height: 50vw; background: rgba(0, 240, 255, 0.15); top: -10%; left: -10%; }
+        .orb-2 { width: 60vw; height: 60vw; background: rgba(139, 92, 246, 0.15); bottom: -20%; right: -10%; animation-delay: -5s; }
+        .orb-3 { width: 40vw; height: 40vw; background: rgba(16, 185, 129, 0.1); top: 40%; left: 40%; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(10%, 10%) scale(1.1); } }
 
-        h2.app-title { 
-            display: flex; align-items: center; gap: 10px;
-            margin-top: 0; margin-bottom: 25px; 
-            font-size: 1.8rem; font-weight: 700;
-            background: -webkit-linear-gradient(45deg, #a5b4fc, #6366f1);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        /* App Layout */
+        .app-wrapper { display: flex; width: 100%; height: 100%; box-sizing: border-box; padding: 20px; gap: 20px; }
+        
+        /* Sidebar Navigation */
+        .sidebar { 
+            width: var(--sidebar-width); height: 100%; background: var(--glass-bg); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            display: flex; flex-direction: column; padding: 24px; box-sizing: border-box;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
         
-        button { 
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 10px 18px; background: var(--bg-panel); color: var(--text-main); 
-            border: 1px solid var(--border-color); border-radius: 8px; 
-            cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+        .brand-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
+        .brand-text h1 { margin: 0; font-size: 18px; font-weight: 700; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px; }
+        .brand-text p { margin: 0; font-size: 11px; color: var(--neon-cyan); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .nav-btn { 
+            display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 18px; 
+            background: transparent; border: 1px solid transparent; border-radius: 12px; 
+            color: var(--text-muted); font-size: 15px; font-weight: 500; cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: left; font-family: 'Outfit', sans-serif;
         }
-        button:hover { background: var(--bg-panel-hover); }
-        
-        .btn-primary { background: var(--accent-primary); border: none; color: white; }
-        .btn-primary:hover { background: var(--accent-primary-hover); box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
-        .btn-green { background: var(--accent-success); border: none; color: white; }
-        .btn-green:hover { background: var(--accent-success-hover); box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
-        .btn-red { background: var(--accent-danger); border: none; color: white; }
-        .btn-red:hover { background: var(--accent-danger-hover); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
-        .btn-small { padding: 6px 12px; font-size: 13px; border-radius: 6px; }
-        
-        .global-control-bar { 
-            background: rgba(39, 39, 42, 0.6); backdrop-filter: blur(12px);
-            padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); 
-            margin-bottom: 30px; display: flex; align-items: center; gap: 20px; 
+        .nav-btn i { font-size: 20px; transition: 0.3s; }
+        .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.03); transform: translateX(4px); }
+        .nav-btn.active { 
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent); 
+            border: 1px solid rgba(0, 240, 255, 0.2); color: #fff; border-left: 3px solid var(--neon-cyan);
         }
-        .control-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-btn.active i { color: var(--neon-cyan); filter: drop-shadow(0 0 8px var(--neon-cyan)); }
+
+        /* Main Workspace */
+        .main-workspace { flex-grow: 1; display: flex; flex-direction: column; gap: 20px; height: 100%; overflow: hidden; }
+
+        /* Glass Header */
+        .glass-header { 
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px 30px; 
+            display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .custom-select-wrapper { position: relative; }
         select { 
-            padding: 10px 14px; background: #09090b; color: var(--text-main); 
-            border: 1px solid var(--border-color); border-radius: 8px; 
-            width: 320px; font-size: 14px; font-family: 'Inter', sans-serif;
-            appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+            padding: 12px 40px 12px 16px; background: rgba(0,0,0,0.3); color: #fff; 
+            border: 1px solid var(--glass-border); border-radius: 12px; width: 350px; 
+            font-size: 14px; font-family: 'Fira Code', monospace; font-weight: 500;
+            appearance: none; cursor: pointer; transition: 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
-        select:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
-        
-        #status-log { 
-            padding: 12px 16px; background: #09090b; border-left: 4px solid var(--accent-primary); 
-            border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); 
-            flex-grow: 1; margin: 0; box-shadow: inset var(--shadow-sm);
-        }
-        
-        .tabs { 
-            display: inline-flex; gap: 4px; background: #09090b; 
-            padding: 6px; border-radius: 10px; margin-bottom: 25px; 
-            border: 1px solid var(--border-color);
-        }
-        .tab-btn { 
-            background: transparent; border: none; color: var(--text-muted); 
-            padding: 10px 20px; border-radius: 8px; font-weight: 500; font-size: 14px;
-        }
-        .tab-btn:hover { color: var(--text-main); }
-        .tab-btn.active { 
-            background: var(--bg-panel); color: var(--text-main); 
-            box-shadow: var(--shadow-sm); border: 1px solid rgba(255,255,255,0.05);
-        }
-        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        select:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .select-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--neon-cyan); pointer-events: none; }
 
-        .file-upload-wrapper { 
-            display: flex; align-items: center; gap: 15px; margin-bottom: 20px; 
-            background: rgba(39, 39, 42, 0.3); padding: 15px; border-radius: 10px; 
-            border: 1px dashed var(--border-color); 
+        #status-log { 
+            background: rgba(0, 0, 0, 0.3); padding: 12px 20px; border-radius: 12px; 
+            font-family: 'Fira Code', monospace; font-size: 13px; color: var(--neon-cyan); 
+            flex-grow: 1; border: 1px solid rgba(0, 240, 255, 0.2); display: flex; align-items: center; gap: 10px;
+        }
+
+        /* Content Area */
+        .content-area { 
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 24px; padding: 30px; 
+            flex-grow: 1; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative;
+        }
+
+        .tab-content { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); height: 100%; flex-direction: column;}
+        .tab-content.active { display: flex; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Buttons */
+        .btn { 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px 20px; background: rgba(255,255,255,0.05); color: #fff; 
+            border: 1px solid var(--glass-border); border-radius: 10px; cursor: pointer; 
+            font-weight: 500; font-size: 14px; font-family: 'Outfit', sans-serif; transition: all 0.3s ease;
+        }
+        .btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+        
+        .btn-glow-cyan { background: rgba(0, 240, 255, 0.1); border-color: rgba(0, 240, 255, 0.4); color: var(--neon-cyan); }
+        .btn-glow-cyan:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 20px rgba(0, 240, 255, 0.5); }
+        
+        .btn-glow-purple { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd; }
+        .btn-glow-purple:hover { background: var(--neon-purple); color: #fff; box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+
+        .btn-glow-red { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.4); color: #fda4af; }
+        .btn-glow-red:hover { background: var(--neon-red); color: #fff; box-shadow: 0 0 20px rgba(244, 63, 94, 0.5); }
+
+        .btn-glow-green { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; }
+        .btn-glow-green:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+
+        /* File Upload */
+        .upload-zone { 
+            display: flex; align-items: center; gap: 20px; padding: 20px; 
+            background: linear-gradient(to right, rgba(0,0,0,0.2), transparent);
+            border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px; margin-bottom: 25px; 
         }
         input[type="file"] { display: none; }
-        .custom-file-label { 
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 10px 20px; background: var(--bg-panel); color: var(--text-main); 
-            border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; 
-            font-weight: 600; transition: 0.2s; font-size: 14px;
-        }
-        .custom-file-label:hover { background: var(--bg-panel-hover); border-color: var(--accent-primary); color: var(--accent-primary); }
-        input[type="checkbox"].file-checkbox { 
-            width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-primary); 
-            border-radius: 4px; background: #09090b; border: 1px solid var(--border-color);
-        }
-        
-        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; border-radius: 10px; border: 1px solid var(--border-color); overflow: hidden; }
-        .data-table th { background: #09090b; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
-        .data-table td { background: var(--bg-container); padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
-        .data-table tr:last-child td { border-bottom: none; }
-        .data-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
 
-        .table-container { overflow-x: auto; max-height: 500px; border-radius: 10px; border: 1px solid var(--border-color); background: #09090b; padding: 0; }
+        /* Floating Tables */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px; }
+        .data-table th { color: var(--text-muted); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; padding: 0 20px 10px 20px; text-align: left; border-bottom: 1px solid var(--glass-border); }
+        .data-table td { background: rgba(0,0,0,0.3); padding: 16px 20px; font-size: 14px; border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); transition: 0.2s; }
+        .data-table td:first-child { border-left: 1px solid var(--glass-border); border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+        .data-table td:last-child { border-right: 1px solid var(--glass-border); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+        .data-table tbody tr:hover td { background: rgba(255,255,255,0.05); transform: scale(1.005); }
+
+        .toggle-checkbox { appearance: none; width: 40px; height: 20px; background: rgba(255,255,255,0.1); border-radius: 20px; position: relative; cursor: pointer; outline: none; border: 1px solid var(--glass-border); transition: 0.3s; }
+        .toggle-checkbox::before { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--text-muted); top: 2px; left: 3px; transition: 0.3s; }
+        .toggle-checkbox:checked { background: rgba(0, 240, 255, 0.2); border-color: var(--neon-cyan); }
+        .toggle-checkbox:checked::before { background: var(--neon-cyan); transform: translateX(18px); box-shadow: 0 0 10px var(--neon-cyan); }
+
+        /* Grid Visualizer */
+        .table-container { flex-grow: 1; overflow: auto; border-radius: 16px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
         .grid-table { border-collapse: collapse; width: 100%; }
-        .grid-table th, .grid-table td { font-size: var(--grid-font-size); transition: font-size 0.2s; border: 1px solid var(--bg-container); padding: 10px; text-align: center; min-width: 100px; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
+        .grid-table th, .grid-table td { font-size: var(--grid-font-size); transition: font-size 0.2s; border: 1px solid rgba(255,255,255,0.05); padding: 12px; text-align: center; min-width: 100px; white-space: pre-wrap; font-family: 'Outfit', sans-serif; font-weight: 500; }
+        .grid-cell { cursor: cell; transition: all 0.1s ease; position: relative; }
+        .grid-cell:hover { filter: brightness(1.3); box-shadow: inset 0 0 0 2px var(--neon-cyan); z-index: 10; }
+
+        /* Hex Inputs specifically scoped */
+        .hex-input { padding: 10px 14px; background: rgba(0,0,0,0.4); color: var(--neon-cyan); border: 1px solid var(--glass-border); border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 14px; transition: 0.3s; width: 100px; text-transform: uppercase; }
+        .hex-input:focus { outline: none; border-color: var(--neon-purple); box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+        .color-preview { width: 32px; height: 32px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 10px rgba(0,0,0,0.3); flex-shrink: 0; }
+
+        /* CodeMirror Overrides */
+        .CodeMirror { flex-grow: 1; border-radius: 16px; border: 1px solid var(--glass-border); font-family: 'Fira Code', monospace; font-size: 13px; background: rgba(0,0,0,0.4) !important; margin-bottom: 20px; }
+        .CodeMirror-gutters { background: rgba(0,0,0,0.6) !important; border-right: 1px solid var(--glass-border) !important; }
+        .CodeMirror-focused { border-color: var(--neon-cyan); box-shadow: 0 0 0 2px rgba(0,240,255,0.2); }
+
+        #console-output { flex-grow: 1; background: rgba(0,0,0,0.6); color: var(--neon-cyan); font-family: 'Fira Code', monospace; padding: 20px; border: 1px solid var(--glass-border); border-radius: 16px; resize: none; font-size: 13px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+
+        /* Support Button */
+        .feedback-trigger-btn { position: fixed; bottom: 20px; right: 20px; background: rgba(15, 15, 20, 0.8); backdrop-filter: blur(10px); color: #fff; border: 1px solid var(--glass-border); padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; cursor: pointer; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: 0.3s; display: flex; align-items: center; gap: 10px; font-family: 'Outfit'; }
+        .feedback-trigger-btn:hover { border-color: var(--neon-purple); color: var(--neon-purple); box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); transform: translateY(-3px); }
+
+        /* Support Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(3, 3, 5, 0.8); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(15px); }
+        .feedback-box { background: rgba(15, 15, 20, 0.9); padding: 40px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1); animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalPop { 0% { opacity: 0; transform: scale(0.9) translateY(20px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
         
-        input[type="text"] { 
-            padding: 8px 12px; background: #09090b; color: var(--text-main); 
-            border: 1px solid var(--border-color); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; transition: 0.2s;
+        /* Strictly Scoped Modal Inputs to prevent Hex override bug */
+        .feedback-input, .feedback-textarea { 
+            width: 100% !important; 
+            padding: 14px; margin-bottom: 20px; 
+            background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #fff; 
+            border-radius: 12px; box-sizing: border-box; 
+            font-family: 'Outfit', sans-serif !important; font-size: 14px; 
+            transition: 0.3s; text-transform: none !important; 
         }
-        input[type="text"]:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+        .feedback-input:focus, .feedback-textarea:focus { outline: none; border-color: var(--neon-purple); box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+
+        /* Floating Draggable Color Picker */
+        .draggable-panel { 
+            position: fixed; top: 30%; left: 40%; width: 300px; 
+            background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border); border-radius: 16px; 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); z-index: 3000; 
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .panel-header { 
+            padding: 12px 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border);
+            display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: grab; color: var(--text-main);
+        }
+        .panel-header:active { cursor: grabbing; }
+        .panel-body { padding: 20px; display: flex; flex-direction: column; }
         
-        .flex-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
-        .color-preview { width: 28px; height: 28px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); flex-shrink: 0; transition: 0.2s;}
+        .preset-swatch { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; transition: 0.2s; padding: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+        .preset-swatch:hover { transform: scale(1.15); border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,240,255,0.3); }
 
-        .xml-textarea { width: 100%; height: 250px; background: #09090b; color: var(--text-main); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.4; margin-bottom: 15px; white-space: pre; font-size: 13px; }
-        .xml-textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
-        #console-output { width: 100%; height: 450px; background: #09090b; color: var(--accent-success); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.5; font-size: 13px; }
-
-        .loc-chip { display: inline-flex; align-items: center; background: var(--bg-panel); padding: 4px 10px; border-radius: 20px; margin: 4px 4px 0 0; font-size: 12px; border: 1px solid var(--border-color); font-family: 'JetBrains Mono', monospace; }
-        .loc-del { color: var(--text-muted); cursor: pointer; margin-left: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .loc-del:hover { color: var(--accent-danger); }
-        
-        .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #fcd34d; display: flex; gap: 12px; align-items: flex-start; line-height: 1.5; font-size: 14px; }
-        .alert-warning i { font-size: 20px; color: var(--accent-warning); flex-shrink: 0; }
-
-        .version-tag { position: fixed; bottom: 15px; right: 20px; text-align: right; z-index: 1000; pointer-events: none; }
-        #app-version-tag { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }
-        .signature { font-size: 11px; margin-top: 4px; color: var(--border-color); font-weight: 500; letter-spacing: 0.5px; }
-        
-        .feedback-trigger-btn { position: fixed; bottom: 15px; left: 20px; background: var(--bg-container); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; z-index: 1000; box-shadow: var(--shadow-lg); transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-        .feedback-trigger-btn:hover { background: var(--bg-panel); border-color: var(--accent-primary); color: var(--accent-primary); transform: translateY(-2px); }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 9, 11, 0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
-        .feedback-box { background: var(--bg-container); padding: 35px; border-radius: 16px; border: 1px solid var(--border-color); width: 450px; max-width: 90vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes modalPop { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
-        .feedback-box h3 { margin-top: 0; margin-bottom: 20px; color: var(--text-main); font-size: 1.4em; display: flex; align-items: center; gap: 8px; }
-        .feedback-input { width: 100%; padding: 12px 14px; margin-bottom: 15px; background: #09090b; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
-        .feedback-textarea { width: 100%; height: 120px; padding: 12px 14px; margin-bottom: 25px; background: #09090b; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; resize: vertical; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
-        .feedback-input:focus, .feedback-textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+        /* Utilities */
+        .flex-row { display: flex; align-items: center; gap: 10px; }
+        .loc-chip { display: inline-flex; align-items: center; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; margin: 4px 4px 0 0; font-size: 12px; border: 1px solid var(--glass-border); font-family: 'Fira Code', monospace; }
+        .loc-del { color: var(--text-muted); cursor: pointer; margin-left: 8px; transition: 0.2s; }
+        .loc-del:hover { color: var(--neon-red); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
+
+<div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
 
 <script>
     const APP_ACTIVATED = true; 
     document.addEventListener("DOMContentLoaded", () => {
         if (!APP_ACTIVATED) {
-            document.getElementById("main-app-container").style.display = "none";
-            document.getElementById("deactivated-message").style.display = "block";
+            document.getElementById("app-wrapper").style.display = "none";
+            document.body.innerHTML += `<div style="display:flex; height:100vh; width:100vw; align-items:center; justify-content:center; flex-direction:column; z-index:9999; color:#fff; text-align:center;"><i class="ph-fill ph-warning-circle" style="font-size: 64px; color: #f43f5e; margin-bottom:20px; filter: drop-shadow(0 0 20px #f43f5e);"></i><h1 style="font-size: 32px; margin:0;">System Offline</h1><p style="color:#94a3b8; margin-top:10px;">The Oracle EPM Tool is under maintenance.</p></div>`;
         }
     });
 </script>
 
-<div id="deactivated-message" class="main-container" style="display: none; text-align: center; margin-top: 10vh; padding: 60px;">
-    <h1 style="color: var(--text-main); font-size: 2.5em; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 15px;">
-        <i class="ph-fill ph-wrench" style="color: var(--accent-primary);"></i> Tool Offline
-    </h1>
-    <p style="font-size: 16px; color: var(--text-muted); line-height: 1.6;">The Oracle EPM XML Multi-Tool is currently undergoing maintenance.<br>Please check back later.</p>
-</div>
+<div class="app-wrapper" id="app-wrapper">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon"><i class="ph-bold ph-magic-wand"></i></div>
+            <div class="brand-text">
+                <h1>EPM Studio</h1>
+                <p>XML Multi-Tool</p>
+            </div>
+        </div>
+        
+        <nav class="nav-menu">
+            <button class="nav-btn active" onclick="switchTab('tab-files', this)"><i class="ph-bold ph-folder-notch-open"></i> File Manager</button>
+            <button class="nav-btn" onclick="switchTab('tab-visualizer', this)"><i class="ph-bold ph-grid-four"></i> Grid Visualizer</button>
+            <button class="nav-btn" onclick="switchTab('tab-colors', this)"><i class="ph-bold ph-palette"></i> Color Dictionary</button>
+            <button class="nav-btn" onclick="switchTab('tab-rawtext', this)"><i class="ph-bold ph-code"></i> Raw Editor</button>
+            <button class="nav-btn" onclick="switchTab('tab-console', this)"><i class="ph-bold ph-terminal-window"></i> Console Trace</button>
+        </nav>
 
-<div class="version-tag">
-    <div id="app-version-tag">v...</div>
-    <div class="signature">Made by Adetth Raju</div>
-</div>
-<script>
-    fetch('changelog.txt', { cache: "no-store" })
-        .then(response => { if (!response.ok) throw new Error("changelog.txt not found"); return response.text(); })
-        .then(text => {
-            const matches = text.match(/v\d+\.\d+(\.\d+)?/gi);
-            document.getElementById('app-version-tag').innerText = matches ? matches[matches.length - 1] : "v?.??";
-        })
-        .catch(error => { document.getElementById('app-version-tag').innerText = "v0.18"; });
-</script>
+        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--glass-border); text-align: center; font-size: 11px; color: var(--text-muted); font-family: 'Fira Code', monospace;">
+            <span id="app-version-tag">v...</span><br>
+            <span style="opacity: 0.5;">By Adetth Raju</span>
+        </div>
+    </aside>
 
-<div class="main-container" id="main-app-container">
-    <h2 class="app-title"><i class="ph-fill ph-magic-wand"></i> Oracle EPM XML Multi-Tool</h2>
-    
-    <div class="global-control-bar">
-        <div>
-            <span class="control-label">Currently Inspecting</span>
-            <div style="display: flex; gap: 10px; align-items: center;">
+    <main class="main-workspace">
+        <header class="glass-header">
+            <div class="custom-select-wrapper">
                 <select id="global-file-select" py-change="switch_active_file">
-                    <option value="">No files loaded</option>
+                    <option value="">No workspace files loaded</option>
                 </select>
-                <button py-click="undo_last_action" class="btn-small" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);" title="Undo Last Action"><i class="ph-bold ph-arrow-u-up-left"></i> Undo</button>
+                <i class="ph-bold ph-caret-down select-icon"></i>
             </div>
-        </div>
-        <div id="status-log">Status: Booting PyScript Environment...</div>
-    </div>
+            <button py-click="undo_last_action" class="btn" style="padding: 12px 16px;" title="Undo Last Action"><i class="ph-bold ph-arrow-u-up-left"></i></button>
+            <div id="status-log"><i class="ph-fill ph-circle-notch ph-spin"></i> Booting PyScript Engine...</div>
+        </header>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-files', this)"><i class="ph ph-folder-open"></i> File Manager</button>
-        <button class="tab-btn" onclick="switchTab('tab-visualizer', this)"><i class="ph ph-grid-four"></i> Grid Visualizer</button>
-        <button class="tab-btn" onclick="switchTab('tab-colors', this)"><i class="ph ph-palette"></i> Color Injector</button>
-        <button class="tab-btn" onclick="switchTab('tab-rawtext', this)"><i class="ph ph-file-code"></i> Raw Text</button>
-        <button class="tab-btn" onclick="switchTab('tab-console', this)"><i class="ph ph-terminal-window"></i> Console Log</button>
-    </div>
-
-    <div id="tab-files" class="tab-content active">
-        <div class="file-upload-wrapper">
-            <label for="file-upload" class="custom-file-label"><i class="ph ph-file-plus"></i> Add Files</label>
-            <input type="file" id="file-upload" multiple accept=".xml">
+        <div class="content-area">
             
-            <label for="folder-upload" class="custom-file-label"><i class="ph ph-folder-plus"></i> Add Folder</label>
-            <input type="file" id="folder-upload" webkitdirectory directory multiple>
-            
-            <span id="file-count-display" style="color: var(--text-muted); font-size: 13px; margin-left: 10px;">0 files pending</span>
-            
-            <div style="margin-left: auto; display: flex; gap: 10px;">
-                <button py-click="load_files_to_ram" class="btn-primary"><i class="ph ph-download-simple"></i> Load to RAM</button>
-                <button py-click="clear_all_files"><i class="ph ph-trash"></i> Clear All</button>
+            <div id="tab-files" class="tab-content active">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 600;"><i class="ph-fill ph-folder" style="color: var(--neon-cyan); margin-right: 10px;"></i>Workspace Files</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button py-click="load_files_to_ram" class="btn btn-glow-cyan"><i class="ph-bold ph-download-simple"></i> Load to Memory</button>
+                        <button py-click="clear_all_files" class="btn btn-glow-red"><i class="ph-bold ph-trash"></i> Purge All</button>
+                    </div>
+                </div>
+
+                <div class="upload-zone">
+                    <label for="file-upload" class="btn"><i class="ph-bold ph-file-plus"></i> Select XML Files</label>
+                    <input type="file" id="file-upload" multiple accept=".xml">
+                    <label for="folder-upload" class="btn"><i class="ph-bold ph-folder-plus"></i> Select Folder</label>
+                    <input type="file" id="folder-upload" webkitdirectory directory multiple>
+                    <span id="file-count-display" style="color: var(--text-muted); font-size: 14px; font-weight: 500; margin-left: auto;">0 files pending</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-left: 10px;">
+                    <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="toggleAllCheckboxes(true)"><i class="ph-bold ph-check-square"></i> Check All</button>
+                    <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="toggleAllCheckboxes(false)"><i class="ph-bold ph-square"></i> Uncheck All</button>
+                    <button py-click="batch_run_formatting" class="btn btn-glow-green" style="margin-left: auto;"><i class="ph-fill ph-play-circle"></i> BATCH FORMAT & ZIP</button>
+                </div>
+
+                <div style="flex-grow: 1; overflow-y: auto; overflow-x: hidden;" class="hide-scroll">
+                    <table class="data-table">
+                        <thead><tr><th style="width: 60px; text-align: center;">Inc</th><th>Registry Name</th><th>Memory Status</th></tr></thead>
+                        <tbody id="file-list-target"><tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 60px;"><i class="ph-thin ph-hard-drives" style="font-size: 48px; display: block; margin-bottom: 15px; opacity: 0.5;"></i> Memory cache is empty.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-visualizer" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 20px; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="member" checked onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Member</label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="dimension" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Dimension</label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Type</label>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="refresh-grid-btn" py-click="render_grid_visualizer" class="btn"><i class="ph-bold ph-arrows-clockwise"></i></button>
+                        <button py-click="strip_all_legacy_handler" class="btn btn-glow-red"><i class="ph-bold ph-magic-wand"></i> Strip Override Colors</button>
+                        <button py-click="format_active_file" class="btn btn-glow-green"><i class="ph-fill ph-play-circle"></i> Format Active File</button>
+                    </div>
+                </div>
+                <div class="table-container hide-scroll" id="grid-render-target">
+                    <div style="padding: 100px; text-align: center; color: var(--text-muted);"><i class="ph-thin ph-grid-four" style="font-size: 64px; display: block; margin-bottom: 20px; opacity: 0.5;"></i>No workspace file selected.</div>
+                </div>
+            </div>
+
+            <div id="tab-colors" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button py-click="render_color_injector" class="btn"><i class="ph-bold ph-arrows-clockwise"></i> Sync Colors</button>
+                        <button py-click="add_color_handler" class="btn btn-glow-purple"><i class="ph-bold ph-plus"></i> Inject Blank Node</button>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button py-click="export_theme_handler" class="btn"><i class="ph-bold ph-download-simple"></i> Export JSON Theme</button>
+                        <label for="theme-upload" class="btn" style="margin: 0;"><i class="ph-bold ph-upload-simple"></i> Import JSON</label>
+                        <input type="file" id="theme-upload" accept=".json" py-change="import_theme_handler" class="hidden">
+                        <button py-click="inject_colors_to_active_file" class="btn btn-glow-cyan"><i class="ph-bold ph-paint-brush-broad"></i> Apply & Download</button>
+                    </div>
+                </div>
+                <div style="flex-grow: 1; overflow-y: auto;" class="hide-scroll">
+                    <table class="data-table">
+                        <thead><tr><th style="width: 80px;">Sys ID</th><th style="width: 150px;">Dictionary Hex</th><th>XML Usage Links</th><th style="width: 150px;">Target Hex</th><th style="width: 100px; text-align: center;">Action</th></tr></thead>
+                        <tbody id="color-render-target"><tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 60px;"><i class="ph-thin ph-palette" style="font-size: 48px; display: block; margin-bottom: 15px; opacity: 0.5;"></i>Awaiting file selection.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-rawtext" class="tab-content" style="display: none; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 500;"><i class="ph-bold ph-code" style="color: var(--neon-cyan); margin-right: 10px;"></i>Isolated Sandbox Editor</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="clearRawInput()" class="btn"><i class="ph-bold ph-eraser"></i> Clear Input</button>
+                        <button py-click="format_raw_text" class="btn btn-glow-green"><i class="ph-fill ph-play-circle"></i> Execute Formatting</button>
+                    </div>
+                </div>
+                <textarea id="raw-xml-input" placeholder="Paste unformatted XML here..."></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0 5px 0;">
+                    <span style="font-size: 14px; color: var(--text-muted);"><i class="ph-fill ph-check-circle" style="color: var(--neon-green); margin-right: 5px; vertical-align: middle;"></i>Output Buffer</span>
+                    <button class="btn btn-glow-cyan" style="padding: 6px 12px; font-size: 12px;" onclick="copyRawOutput()"><i class="ph-bold ph-copy"></i> Copy to Clipboard</button>
+                </div>
+                <textarea id="formatted-xml-output"></textarea>
+            </div>
+
+            <div id="tab-console" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 500;"><i class="ph-bold ph-terminal" style="color: var(--neon-cyan); margin-right: 10px;"></i>WASM Engine Trace</h2>
+                    <button class="btn" onclick="document.getElementById('console-output').value=''"><i class="ph-bold ph-eraser"></i> Clear Trace</button>
+                </div>
+                <textarea id="console-output" readonly spellcheck="false" placeholder="Awaiting Pyodide VM initialization..."></textarea>
             </div>
         </div>
+    </main>
+</div>
 
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-            <button class="btn-small" onclick="toggleAllCheckboxes(true)"><i class="ph ph-check-square"></i> Check All</button>
-            <button class="btn-small" onclick="toggleAllCheckboxes(false)"><i class="ph ph-square"></i> Uncheck All</button>
-            <button py-click="batch_run_formatting" class="btn-green" style="margin-left: auto; padding: 10px 20px;"><i class="ph-fill ph-play-circle"></i> BATCH FORMAT & ZIP</button>
-        </div>
-
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 50px; text-align: center;">Run</th>
-                    <th>File Name</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="file-list-target">
-                <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="ph ph-hard-drives" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> No files currently loaded in RAM.</td></tr>
-            </tbody>
-        </table>
+<div id="custom-color-picker" class="draggable-panel hidden">
+    <div class="panel-header" id="picker-header">
+        <i class="ph-bold ph-dots-six-vertical" style="color: var(--text-muted);"></i> Grid Format Editor
     </div>
-
-    <div id="tab-visualizer" class="tab-content">
-        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 20px; background: rgba(39, 39, 42, 0.3); padding: 12px 15px; border-radius: 10px; border: 1px solid var(--border-color);">
-            <div style="display: flex; gap: 15px; font-size: 13px; color: var(--text-muted);">
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="member" checked onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Member Name</label>
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="dimension" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Dimension Name</label>
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Data Type</label>
-            </div>
-            
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; background: #09090b; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
-                <button class="btn-small" style="background: transparent; border: none; padding: 4px 8px;" onclick="changeZoom(-2)"><i class="ph ph-minus"></i></button>
-                <span id="zoom-display" style="width: 30px; text-align: center; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px;">12</span>
-                <button class="btn-small" style="background: transparent; border: none; padding: 4px 8px;" onclick="changeZoom(2)"><i class="ph ph-plus"></i></button>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <button id="refresh-grid-btn" py-click="render_grid_visualizer"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
-                <button py-click="strip_all_legacy_handler" class="btn-red"><i class="ph ph-magic-wand"></i> Strip Legacy Colors</button>
-                <button py-click="format_active_file" class="btn-green"><i class="ph-fill ph-play-circle"></i> Format Active File</button>
-            </div>
-        </div>
-        <div class="table-container" id="grid-render-target">
-            <div style="padding: 40px; text-align: center; color: var(--text-muted);"><i class="ph ph-grid-four" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>Select a file from the dropdown above.</div>
-        </div>
-    </div>
-
-    <div id="tab-colors" class="tab-content">
-        <div class="alert-warning">
-            <i class="ph-fill ph-warning"></i>
-            <div>
-                <strong>Warning: Modifying Data Dictionary</strong><br>
-                Do not modify or delete colors unless you know exactly what you are doing. Deleting a color will instantly strip all of its associated Row/Col formatting rules from the active XML!
+    <div class="panel-body">
+        
+        <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
+            <div id="live-color-preview" style="width: 50px; height: 50px; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 5px 15px rgba(0,0,0,0.5);"></div>
+            <div style="flex-grow: 1;">
+                <label style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Hex Code</label>
+                <input type="text" id="manual-hex-input" class="hex-input" style="width: 100%; margin-top: 4px;" value="#FFFFFF">
             </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button py-click="render_color_injector"><i class="ph ph-arrows-clockwise"></i> Refresh Colors</button>
-            <button py-click="add_color_handler" style="background: var(--accent-warning); color: #000; border: none;"><i class="ph-bold ph-plus"></i> Add Blank Color</button>
-            
-            <div style="margin-left: auto; display: flex; gap: 10px;">
-                <button py-click="export_theme_handler" style="background: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-main);"><i class="ph-bold ph-download-simple"></i> Export Theme</button>
-                <label for="theme-upload" class="custom-file-label" style="margin: 0; background: var(--bg-panel); border: 1px solid var(--border-color);"><i class="ph-bold ph-upload-simple"></i> Import Theme</label>
-                <input type="file" id="theme-upload" accept=".json" py-change="import_theme_handler">
-                <button py-click="inject_colors_to_active_file" class="btn-primary"><i class="ph-bold ph-paint-brush-broad"></i> Inject Hex & Download</button>
-            </div>
+        <label style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Quick Presets</label>
+        <div style="display: flex; gap: 8px; margin-top: 8px; margin-bottom: 15px; justify-content: space-between;">
+            <button class="preset-swatch" style="background: #0B2531;" onclick="setPickerHex('#0B2531')" title="Dark Blue"></button>
+            <button class="preset-swatch" style="background: #F0F8FF;" onclick="setPickerHex('#F0F8FF')" title="Alice Blue"></button>
+            <button class="preset-swatch" style="background: #FF8C00;" onclick="setPickerHex('#FF8C00')" title="Accent Orange"></button>
+            <button class="preset-swatch" style="background: #FFFFFF;" onclick="setPickerHex('#FFFFFF')" title="White"></button>
+            <button class="preset-swatch" style="background: #10B981;" onclick="setPickerHex('#10B981')" title="Success Green"></button>
+            <button class="preset-swatch" style="background: #EF4444;" onclick="setPickerHex('#EF4444')" title="Danger Red"></button>
         </div>
-        
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 80px;">ID Name</th>
-                    <th style="width: 150px;">Original Preview</th>
-                    <th>Usage Locations</th>
-                    <th style="width: 150px;">New Hex Code</th>
-                    <th style="width: 100px; text-align: center;">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="color-render-target">
-                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="ph ph-palette" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>Select a file from the dropdown above.</td></tr>
-            </tbody>
-        </table>
-    </div>
 
-    <div id="tab-rawtext" class="tab-content">
-        <p style="margin-top: 0; color: var(--text-muted); font-size: 14px; margin-bottom: 15px;"><i class="ph ph-info" style="vertical-align: middle; margin-right: 5px;"></i>Bypass file uploads by pasting an EPM XML form directly. This runs in isolation and does not affect your loaded file registry.</p>
-        
-        <textarea id="raw-xml-input" class="xml-textarea" placeholder="Paste your raw, unformatted XML here..."></textarea>
-        
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-            <button py-click="format_raw_text" class="btn-green" style="padding: 10px 20px;"><i class="ph-fill ph-play-circle"></i> FORMAT RAW TEXT</button>
-            <button onclick="document.getElementById('raw-xml-input').value=''"><i class="ph ph-eraser"></i> Clear Input</button>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+            <button class="btn" style="padding: 8px 16px;" onclick="document.getElementById('custom-color-picker').classList.add('hidden')">Cancel</button>
+            <button class="btn btn-glow-cyan" style="padding: 8px 16px;" onclick="applyCustomColor()">Apply Format</button>
         </div>
-        
-        <textarea id="formatted-xml-output" class="xml-textarea" readonly placeholder="Your formatted XML will appear here..."></textarea>
-        
-        <button class="btn-primary" onclick="copyRawOutput()"><i class="ph ph-copy"></i> Copy Output to Clipboard</button>
-    </div>
-
-    <div id="tab-console" class="tab-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <span style="font-size: 14px; color: var(--text-muted);"><i class="ph ph-terminal" style="vertical-align: middle; margin-right: 5px;"></i>Real-time Python execution trace and error logs:</span>
-            <button class="btn-small" onclick="document.getElementById('console-output').value=''"><i class="ph ph-eraser"></i> Clear Console</button>
-        </div>
-        <textarea id="console-output" readonly spellcheck="false" placeholder="Waiting for Python engine to initialize..."></textarea>
     </div>
 </div>
+
+<input type="hidden" id="temp-r-loc">
+<input type="hidden" id="temp-c-loc">
+<input type="hidden" id="temp-hex-val">
+<button id="hidden-py-trigger" py-click="js_bridge_apply_color" class="hidden"></button>
 
 <button class="feedback-trigger-btn" onclick="document.getElementById('feedback-modal').style.display='flex'">
-    <i class="ph-fill ph-chat-teardrop-text" style="font-size: 18px;"></i> Give Feedback
+    <i class="ph-fill ph-paper-plane-tilt" style="font-size: 18px;"></i> Support
 </button>
 
 <div id="feedback-modal" class="modal-overlay">
     <div class="feedback-box">
-        <h3><i class="ph-fill ph-envelope-simple"></i> Send Feedback</h3>
+        <h3 style="font-size: 24px;"><i class="ph-fill ph-envelope-simple" style="color: var(--neon-purple);"></i> Developer Feedback</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px; margin-top: -10px;">Found a bug or have a feature request? Let me know directly.</p>
         <form action="https://api.web3forms.com/submit" method="POST">
             <input type="hidden" name="access_key" id="form-key-input" value="">
             <input type="hidden" name="redirect" value="https://adetth.github.io/epm_xml_formatter/">
             
             <input type="text" name="name" class="feedback-input" placeholder="Your Name" required>
             <input type="email" name="email" class="feedback-input" placeholder="Your Email (Optional)">
-            <textarea name="message" class="feedback-textarea" placeholder="Describe the issue, feature request in detail..." required></textarea>
+            <textarea name="message" class="feedback-textarea" placeholder="Describe the issue or request in detail..." required></textarea>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-                <button type="button" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color);" onclick="document.getElementById('feedback-modal').style.display='none'">Cancel</button>
-                <button type="submit" class="btn-primary"><i class="ph-fill ph-paper-plane-right"></i> Send Message</button>
+            <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 5px;">
+                <button type="button" class="btn" onclick="document.getElementById('feedback-modal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-glow-purple"><i class="ph-bold ph-paper-plane-right"></i> Transmit</button>
             </div>
         </form>
     </div>
@@ -401,17 +464,31 @@
         for (let i = 0; i < folderInput.files.length; i++) {
             if (folderInput.files[i].name.toLowerCase().endsWith('.xml')) count++;
         }
-        document.getElementById('file-count-display').innerText = count > 0 ? `${count} XML files pending load.` : '0 files pending.';
+        document.getElementById('file-count-display').innerHTML = count > 0 ? `<span style="color: var(--neon-cyan);"><i class="ph-fill ph-check-circle"></i> ${count} files ready</span>` : '0 files pending';
     }
     
     document.getElementById('file-upload').addEventListener('change', updatePendingCount);
     document.getElementById('folder-upload').addEventListener('change', updatePendingCount);
 
     function switchTab(tabId, btnElement) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => {
+            c.classList.remove('active');
+            c.style.display = 'none'; 
+        });
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        const target = document.getElementById(tabId);
+        target.style.display = 'flex'; 
+        setTimeout(() => target.classList.add('active'), 10);
+        
         btnElement.classList.add('active');
+
+        if (tabId === 'tab-rawtext') {
+            setTimeout(() => { 
+                if(window.rawEditor) window.rawEditor.refresh(); 
+                if(window.outputEditor) window.outputEditor.refresh(); 
+            }, 50);
+        }
     }
 
     function toggleAllCheckboxes(state) {
@@ -428,18 +505,107 @@
     }
 
     function copyRawOutput() {
-        let text = document.getElementById('formatted-xml-output').value;
+        let text = window.outputEditor ? window.outputEditor.getValue() : "";
         if (!text) return;
         navigator.clipboard.writeText(text).then(() => {
             alert('Formatted XML copied to clipboard!');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-        });
+        }).catch(err => console.error('Failed to copy: ', err));
     }
 
+    function clearRawInput() {
+        if(window.rawEditor) window.rawEditor.setValue('');
+    }
+
+    // --- Custom Draggable Panel Logic ---
+    const pickerPanel = document.getElementById('custom-color-picker');
+    const pickerHeader = document.getElementById('picker-header');
+    
+    let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+    pickerHeader.addEventListener("mousedown", (e) => {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+        if (e.target === pickerHeader || pickerHeader.contains(e.target)) isDragging = true;
+    });
+    window.addEventListener("mouseup", () => {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+    });
+    window.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+            xOffset = currentX;
+            yOffset = currentY;
+            pickerPanel.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+        }
+    });
+
+    let activeGridCell = { r: null, c: null };
+    
+    function setPickerHex(hex) {
+        document.getElementById('manual-hex-input').value = hex;
+        document.getElementById('live-color-preview').style.backgroundColor = hex;
+    }
+
+    document.getElementById('manual-hex-input').addEventListener('input', (e) => {
+        document.getElementById('live-color-preview').style.backgroundColor = e.target.value;
+    });
+
+    function applyCustomColor() {
+        document.getElementById('temp-r-loc').value = activeGridCell.r;
+        document.getElementById('temp-c-loc').value = activeGridCell.c;
+        document.getElementById('temp-hex-val').value = document.getElementById('manual-hex-input').value;
+        document.getElementById('hidden-py-trigger').click();
+        pickerPanel.classList.add('hidden');
+    }
+
+    window.rawEditor = null;
+    window.outputEditor = null;
+
     document.addEventListener("DOMContentLoaded", () => {
+        fetch('changelog.txt', { cache: "no-store" })
+            .then(r => r.text())
+            .then(text => {
+                const matches = text.match(/v\d+\.\d+(\.\d+)?/gi);
+                document.getElementById('app-version-tag').innerText = matches ? matches[matches.length - 1] : "v?.??";
+            }).catch(() => document.getElementById('app-version-tag').innerText = "v0.18");
+
         const encodedKey = "NjRlZTZhNDgtMmRiZS00ZmQ4LWJkOTQtNWI3MGYwYjkyYTBi"; 
         document.getElementById('form-key-input').value = atob(encodedKey);
+
+        window.rawEditor = CodeMirror.fromTextArea(document.getElementById("raw-xml-input"), {
+            mode: "xml", theme: "material-ocean", lineNumbers: true, lineWrapping: true
+        });
+        window.outputEditor = CodeMirror.fromTextArea(document.getElementById("formatted-xml-output"), {
+            mode: "xml", theme: "material-ocean", lineNumbers: true, lineWrapping: true, readOnly: true
+        });
+
+        // Trigger custom UI picker entirely inside the browser
+        const gridTarget = document.getElementById('grid-render-target');
+        gridTarget.addEventListener('click', (e) => {
+            const cell = e.target.closest('.grid-cell');
+            if (!cell) return;
+            
+            activeGridCell.r = cell.getAttribute('data-r');
+            activeGridCell.c = cell.getAttribute('data-c');
+            
+            let bg = cell.style.backgroundColor;
+            let hexVal = '#FFFFFF';
+            
+            if (bg.startsWith('rgb') && bg !== 'rgba(0, 0, 0, 0)') {
+                let rgb = bg.match(/\d+/g);
+                if (rgb && rgb.length >= 3) {
+                    hexVal = '#' + rgb.slice(0,3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('').toUpperCase();
+                }
+            } else if (bg.startsWith('#')) {
+                hexVal = bg.toUpperCase();
+            }
+            
+            setPickerHex(hexVal);
+            pickerPanel.classList.remove('hidden');
+        });
     });
 </script>
 
@@ -463,13 +629,20 @@
             if console_el:
                 console_el.value += msg
                 console_el.scrollTop = console_el.scrollHeight 
-
-        def flush(self):
-            pass
+        def flush(self): pass
 
     sys.stdout = DOMConsole()
     sys.stderr = DOMConsole()
-    print("Python Engine Initialized. DOM Console mounted successfully.")
+    
+    print("=========================================")
+    print(" EPM XML MULTI-TOOL ENGINE v2.0 BOOTING ")
+    print("=========================================")
+    print("> Pyodide WASM Environment: ACTIVE")
+    print("> Python XML DOM Parser: SECURE")
+    print("> LocalStorage Persistence: ENABLED")
+    print("> Waiting for file ingestion...\n")
+
+    document.getElementById("status-log").innerHTML = "<i class='ph-fill ph-check-circle' style='color: var(--neon-green);'></i> Engine Ready"
 
     file_registry = {}
     active_filename = None
@@ -481,11 +654,10 @@
         return None
 
     def log(msg):
-        document.getElementById("status-log").innerText = f"Status: {msg}"
+        document.getElementById("status-log").innerHTML = f"<i class='ph-bold ph-terminal-window'></i> {msg}"
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
-    # --- BROWSER PERSISTENCE ENGINE ---
     def save_session_to_localstorage():
         try:
             session_data = {}
@@ -493,7 +665,7 @@
                 session_data[fname] = mod.get_final_xml_string()
             window.localStorage.setItem("epm_xml_session", json.dumps(session_data))
         except Exception as e:
-            print(f"LocalStorage Quota Exceeded or Error. RAM retains files safely. ({e})")
+            print(f"LocalStorage Quota Exceeded. RAM retains files safely. ({e})")
 
     def load_session_from_localstorage():
         global active_filename
@@ -510,21 +682,20 @@
                     refresh_file_manager_ui()
                     refresh_global_dropdown()
                     switch_active_file(None)
-                    log(f"Session Restored: Loaded {len(file_registry)} files from browser cache.")
+                    log(f"Restored {len(file_registry)} files from cache.")
             except Exception as e:
                 print(f"Failed to restore session: {e}")
                 window.localStorage.removeItem("epm_xml_session")
 
-    # --- UNDO ENGINE ---
     def undo_last_action(event):
         modifier = get_active_modifier()
         if modifier and modifier.undo():
             save_session_to_localstorage()
             render_grid_visualizer(None)
             render_color_injector(None)
-            log(f"Undid previous action on {active_filename}.")
+            log(f"Reverted to previous state.")
         else:
-            log("No history to undo for this file.")
+            log("No history to undo.")
 
     async def load_files_to_ram(event):
         global active_filename, file_registry
@@ -532,10 +703,10 @@
         folder_input = document.getElementById("folder-upload")
         
         if file_input.files.length == 0 and folder_input.files.length == 0:
-            log("Error - Please select files or a folder to load.")
+            log("Please select files to load.")
             return
             
-        log("Reading files into memory... Please wait.")
+        log("Ingesting files into memory...")
         loaded_count = 0
         
         async def process_file_list(file_list):
@@ -551,28 +722,26 @@
                         file_registry[file.name] = mod
                         loaded_count += 1
                     except Exception as e:
-                        print(f"Skipped {file.name}: Invalid XML format. Error: {e}")
+                        print(f"Skipped {file.name}: Error: {e}")
 
         await process_file_list(file_input.files)
         await process_file_list(folder_input.files)
 
-        if not file_registry:
-            log("Error - No valid XML forms found.")
-            return
+        if not file_registry: return
 
         if not active_filename or active_filename not in file_registry:
             active_filename = list(file_registry.keys())[0]
             
         file_input.value = ""
         folder_input.value = ""
-        document.getElementById('file-count-display').innerText = "0 files pending."
+        document.getElementById('file-count-display').innerText = "0 files pending"
         
         refresh_file_manager_ui()
         refresh_global_dropdown()
         switch_active_file(None)
         
         save_session_to_localstorage()
-        log(f"Successfully added {loaded_count} files! Total in RAM: {len(file_registry)}")
+        log(f"Added {loaded_count} files. Total: {len(file_registry)}")
 
     def clear_all_files(event):
         global active_filename, file_registry
@@ -583,21 +752,21 @@
         render_grid_visualizer(None)
         render_color_injector(None)
         save_session_to_localstorage()
-        log("All files have been cleared from memory.")
+        log("Memory purged.")
 
     def refresh_file_manager_ui():
         target = document.getElementById("file-list-target")
         if not file_registry:
-            target.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px;"><i class="ph ph-hard-drives" style="font-size: 24px; display: block; margin-bottom: 8px;"></i> No files currently loaded in RAM.</td></tr>'
+            target.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 60px;"><i class="ph-thin ph-hard-drives" style="font-size: 48px; display: block; margin-bottom: 15px; opacity: 0.5;"></i> Memory cache is empty.</td></tr>'
             return
             
         html = ""
         for fname in file_registry.keys():
             html += f"""
             <tr>
-                <td style="text-align: center;"><input type="checkbox" class="file-checkbox" value="{fname}" checked></td>
-                <td style="font-family: 'Inter', sans-serif; font-weight: 500;">{fname}</td>
-                <td style="color: var(--accent-success); font-size: 13px; font-weight: 600;"><i class="ph-bold ph-check" style="margin-right: 4px; vertical-align: middle;"></i>Loaded in RAM</td>
+                <td style="text-align: center;"><input type="checkbox" class="toggle-checkbox file-checkbox" value="{fname}" checked></td>
+                <td style="font-family: 'Fira Code', monospace; font-weight: 500; font-size: 13px;">{fname}</td>
+                <td style="color: var(--neon-cyan); font-size: 12px; font-weight: 600; text-transform: uppercase;"><i class="ph-bold ph-database" style="margin-right: 6px; vertical-align: middle;"></i>In RAM</td>
             </tr>
             """
         target.innerHTML = html
@@ -605,7 +774,7 @@
     def refresh_global_dropdown():
         select_el = document.getElementById("global-file-select")
         if not file_registry:
-            select_el.innerHTML = '<option value="">No files loaded</option>'
+            select_el.innerHTML = '<option value="">No workspace files loaded</option>'
             return
             
         html = ""
@@ -619,89 +788,65 @@
         select_el = document.getElementById("global-file-select")
         if select_el.value:
             active_filename = select_el.value
-            log(f"Switched inspection to: {active_filename}")
+            log(f"Switched context: {active_filename}")
             render_grid_visualizer(None)
             render_color_injector(None)
 
     def batch_run_formatting(event):
-        if not file_registry:
-            log("Warning: Load files first!")
-            return
+        if not file_registry: return log("Load files first!")
             
         checkboxes = document.querySelectorAll(".file-checkbox")
         selected_files = [cb.value for cb in checkboxes if cb.checked]
-        
-        if not selected_files:
-            log("Warning: No files selected to format.")
-            return
+        if not selected_files: return log("No files selected to format.")
             
-        log(f"Batch Formatting {len(selected_files)} files... Please wait.")
+        log(f"Batch Processing {len(selected_files)} files...")
         
         memory_zip = io.BytesIO()
         with zipfile.ZipFile(memory_zip, "w", zipfile.ZIP_DEFLATED) as zf:
             for fname in selected_files:
                 mod = file_registry[fname]
                 try:
-                    print(f"\n========== BEGIN BATCH FORMAT FOR: {fname} ==========")
                     mod.apply_master_formatting()
                     xml_str = mod.get_final_xml_string()
                     zf.writestr(f"Formatted_Forms/{fname}", xml_str)
-                    print(f"========== BATCH FORMAT SUCCESS: {fname} ==========")
+                    print(f"BATCH SUCCESS: {fname}")
                 except Exception as e:
-                    print(f"========== BATCH FORMAT FAILED: {fname} Error: {e} ==========")
+                    print(f"BATCH FAILED: {fname} Error: {e}")
 
         download_zip(memory_zip.getbuffer(), "EPM_Formatted_Export.zip")
         save_session_to_localstorage()
-        log(f"Success! {len(selected_files)} files formatted and downloaded as a ZIP.")
+        log(f"Packaged {len(selected_files)} files into ZIP.")
         render_grid_visualizer(None)
 
     def format_active_file(event):
         modifier = get_active_modifier()
-        if not modifier or not modifier.root:
-            log("Warning: Select a file first!")
-            return
+        if not modifier or not modifier.root: return log("Select a file first!")
         
-        log(f"Running Master Formatting on {active_filename}...")
+        log(f"Executing layout rules on {active_filename}...")
         try:
-            print(f"\n========== SINGLE FILE FORMAT TRACE: {active_filename} ==========")
             modifier.apply_master_formatting()
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
-            print(f"========== SINGLE FORMAT SUCCESS ==========")
-            
             save_session_to_localstorage()
-            log(f"Formatted and downloaded: {active_filename}")
+            log(f"Compiled and downloaded: {active_filename}")
             render_grid_visualizer(None)
         except Exception as e:
-            print(f"========== SINGLE FORMAT ERROR: {e} ==========")
-            log(f"Error during formatting: {e}")
+            log(f"Format Error: {e}")
 
     def format_raw_text(event):
-        input_el = document.getElementById("raw-xml-input")
-        output_el = document.getElementById("formatted-xml-output")
-        raw_xml = input_el.value.strip()
-        
-        if not raw_xml:
-            log("Error: Please paste some XML text first.")
-            return
+        raw_xml = window.rawEditor.getValue().strip()
+        if not raw_xml: return log("Paste XML text first.")
             
-        log("Formatting raw XML text...")
+        log("Formatting raw buffer...")
         try:
-            print("\n========== RAW TEXT FORMAT TRACE ==========")
             temp_mod = XMLAnalyzer()
             temp_mod.load_from_string(raw_xml)
             temp_mod.apply_master_formatting()
-            
-            formatted_xml = temp_mod.get_final_xml_string()
-            output_el.value = formatted_xml
-            
-            print("========== RAW TEXT FORMAT SUCCESS ==========")
-            log("Successfully formatted raw XML text!")
-            
+            window.outputEditor.setValue(temp_mod.get_final_xml_string())
+            log("Buffer formatted successfully.")
         except Exception as e:
-            print(f"========== RAW TEXT FORMAT ERROR: {e} ==========")
-            log(f"Error formatting text: {e}")
-            output_el.value = f"Error during parsing/formatting: {e}\nCheck the Console Log tab for more details."
+            log(f"Error: {e}")
+            window.outputEditor.setValue(f"Error parsing: {e}")
 
     def get_display_text(item_data, mode):
         real_dims = [k for k in item_data.keys() if not k.startswith("_")]
@@ -715,7 +860,7 @@
         modifier = get_active_modifier()
         
         if not modifier or not modifier.root:
-            target.innerHTML = "<div style='padding:40px; text-align:center; color: var(--text-muted);'><i class='ph ph-grid-four' style='font-size: 32px; display: block; margin-bottom: 10px;'></i>No file selected.</div>"
+            target.innerHTML = "<div style='padding:100px; text-align:center; color: var(--text-muted);'><i class='ph-thin ph-grid-four' style='font-size: 64px; display: block; margin-bottom: 20px; opacity: 0.5;'></i>No workspace file selected.</div>"
             return
             
         grid = modifier.get_rowcols()
@@ -724,55 +869,86 @@
         for r in document.getElementsByName("view_mode"):
             if r.checked: mode = r.value
                 
-        html = "<table class='grid-table'><tr><th style='background:#E0E0E0; border-color: #E0E0E0;'></th>"
+        def get_cell_colors(r, c):
+            bg = "rgba(255,255,255,0.02)"
+            fg = "var(--text-main)"
+            info = None
+            if (r, c) in fmt_map: info = fmt_map[(r, c)]
+            elif (r, -1) in fmt_map: info = fmt_map[(r, -1)]
+            elif (-1, c) in fmt_map: info = fmt_map[(-1, c)]
+            
+            if info:
+                # Upgraded Contrast Checking Logic!
+                if type(info) is dict and info["bg"]: 
+                    bg = info["bg"]
+                elif type(info) is str:
+                    bg = info 
+                    
+                if type(info) is dict and info["fg"]: 
+                    fg = info["fg"]
+                else:
+                    # If it's a known dark color, use white. Otherwise, force high-contrast dark text.
+                    bg_up = bg.upper()
+                    if "#" in bg_up:
+                        if bg_up in ["#0B2531", "#000000", "#112531"]:
+                            fg = "white"
+                        else:
+                            fg = "#111111" 
+            return bg, fg
+
+        html = "<table class='grid-table'><tr><th style='background:rgba(255,255,255,0.02);'></th>"
         
         for col in grid["columns"]:
             seg_idx = col.get("_segment_idx", 1)
-            bg = fmt_map.get((0, seg_idx), "#E0E0E0")
-            fg = "white" if bg.upper() in ["#0B2531", "#000000"] else "black"
+            bg, fg = get_cell_colors(0, seg_idx)
             text = get_display_text(col, mode)
-            html += f"<th style='background-color:{bg}; color:{fg}; border-color: #ccc;'>{text}</th>"
+            html += f"<th class='grid-cell' data-r='0' data-c='{seg_idx}' style='background-color:{bg}; color:{fg};'>{text}</th>"
         html += "</tr>"
         
         for row in grid["rows"]:
             r_seg_idx = row.get("_segment_idx", 1)
             is_spacer = (row.get("_size") == "-4")
             
-            row_height_style = "height: 4px;" if is_spacer else ""
+            row_height_style = "height: 6px;" if is_spacer else ""
             cell_pad_style = "padding: 0; font-size: 0px; color: transparent;" if is_spacer else ""
+            cell_class = "" if is_spacer else "grid-cell"
             
             html += f"<tr style='{row_height_style}'>"
             
-            bg = fmt_map.get((r_seg_idx, 0), "#E0E0E0")
-            fg = "transparent" if is_spacer else ("white" if bg.upper() in ["#0B2531", "#000000"] else "black")
+            bg, fg = get_cell_colors(r_seg_idx, 0)
+            if is_spacer: fg = "transparent"
             text = get_display_text(row, mode)
-            html += f"<th style='background-color:{bg}; color:{fg}; border-color: #ccc; {cell_pad_style}'>{text}</th>"
+            html += f"<th class='{cell_class}' data-r='{r_seg_idx}' data-c='0' style='background-color:{bg}; color:{fg}; {cell_pad_style}'>{text}</th>"
             
             for col in grid["columns"]:
                 c_seg_idx = col.get("_segment_idx", 1)
                 
-                if (r_seg_idx, c_seg_idx) in fmt_map: bg_data = fmt_map[(r_seg_idx, c_seg_idx)]
-                elif (r_seg_idx, -1) in fmt_map: bg_data = fmt_map[(r_seg_idx, -1)]
-                elif (-1, c_seg_idx) in fmt_map: bg_data = fmt_map[(-1, c_seg_idx)]
-                else: bg_data = "#FFFFFF"
-                
-                fg_data = "transparent" if is_spacer else ("white" if bg_data.upper() in ["#0B2531", "#000000"] else "black")
-                html += f"<td style='background-color:{bg_data}; color:{fg_data}; border-color: #eee; {cell_pad_style}'>Data</td>"
+                bg_data, fg_data = get_cell_colors(r_seg_idx, c_seg_idx)
+                if is_spacer: fg_data = "transparent"
+                html += f"<td class='{cell_class}' data-r='{r_seg_idx}' data-c='{c_seg_idx}' style='background-color:{bg_data}; color:{fg_data}; {cell_pad_style}'>Data</td>"
             html += "</tr>"
             
         html += "</table>"
         target.innerHTML = html
 
+    def js_bridge_apply_color(event):
+        r = document.getElementById("temp-r-loc").value
+        c = document.getElementById("temp-c-loc").value
+        h = document.getElementById("temp-hex-val").value
+        modifier = get_active_modifier()
+        if modifier:
+            modifier.inject_cell_color(r, c, h)
+            save_session_to_localstorage()
+            render_grid_visualizer(None)
+            render_color_injector(None)
+            log(f"Injected {h} at Coord [R:{r}, C:{c}]")
+
     def strip_all_legacy_handler(event):
-        if not file_registry:
-            log("Warning: No files loaded.")
-            return
-            
+        if not file_registry: return log("No files loaded.")
         for fname, mod in file_registry.items():
             mod.strip_legacy_formatting()
-            
         save_session_to_localstorage()
-        log(f"Successfully stripped legacy colors and styling overrides from ALL {len(file_registry)} forms in memory.")
+        log(f"Purged legacy overrides from {len(file_registry)} forms.")
         render_grid_visualizer(None)
         render_color_injector(None)
 
@@ -782,14 +958,14 @@
         modifier = get_active_modifier()
         
         if not modifier or not modifier.root:
-            target.innerHTML = "<tr><td colspan='5' style='text-align:center; color: var(--text-muted); padding: 30px;'><i class='ph ph-palette' style='font-size: 24px; display: block; margin-bottom: 8px;'></i>No file selected.</td></tr>"
+            target.innerHTML = "<tr><td colspan='5' style='text-align:center; color: var(--text-muted); padding: 60px;'><i class='ph-thin ph-palette' style='font-size: 48px; display: block; margin-bottom: 15px; opacity: 0.5;'></i>Awaiting file selection.</td></tr>"
             return
             
         color_list = modifier.get_detailed_colors()
         editable_color_ids = [c["id"] for c in color_list]
         
         if not color_list:
-            target.innerHTML = "<tr><td colspan='5' style='text-align:center; color: var(--text-muted); padding: 30px;'><i class='ph ph-palette' style='font-size: 24px; display: block; margin-bottom: 8px;'></i>No colors found in XML. Click Add Blank Color.</td></tr>"
+            target.innerHTML = "<tr><td colspan='5' style='text-align:center; color: var(--text-muted); padding: 60px;'><i class='ph-thin ph-palette' style='font-size: 48px; display: block; margin-bottom: 15px; opacity: 0.5;'></i>Dictionary is empty.</td></tr>"
             return
             
         html = ""
@@ -800,25 +976,25 @@
             loc_html = ""
             for loc in c["locations_data"]:
                 data_attrs = f"data-cid='{c_id}' data-ltype='{loc['type']}'"
-                icon = "<i class='ph-fill ph-map-pin' style='margin-right:4px; color: var(--accent-primary);'></i>"
+                icon = "<i class='ph-bold ph-map-pin' style='margin-right:4px; color: var(--neon-cyan);'></i>"
                 if loc['type'] == 'dvr':
                     data_attrs += f" data-r='{loc['r']}' data-c='{loc['c']}'"
                 else:
                     data_attrs += f" data-mbr='{loc['mbr']}'"
-                    icon = "<i class='ph-fill ph-tag' style='margin-right:4px; color: var(--accent-warning);'></i>"
+                    icon = "<i class='ph-bold ph-tag' style='margin-right:4px; color: var(--neon-amber);'></i>"
                     
                 loc_html += f"<span class='loc-chip'>{icon}{loc['display']} <span class='loc-del' {data_attrs} py-click='remove_specific_link'><i class='ph-bold ph-x'></i></span></span>"
                 
-            if not loc_html: loc_html = "<span style='color: var(--text-muted); font-size: 12px; font-style: italic;'><i class='ph ph-ghost' style='margin-right: 4px; vertical-align: middle;'></i>Unused</span>"
+            if not loc_html: loc_html = "<span style='color: var(--text-muted); font-size: 12px; font-style: italic;'><i class='ph-bold ph-ghost' style='margin-right: 4px; vertical-align: middle;'></i>Orphaned</span>"
             
             html += f"""
             <tr>
-                <td style='font-family: \"JetBrains Mono\", monospace; font-weight: 600; color: var(--text-main);'>{c_id}</td>
-                <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span style='font-family: \"JetBrains Mono\", monospace;'>#{hex_val}</span></div></td>
-                <td style='max-width: 320px;'>{loc_html}</td>
-                <td><div class='flex-row'><span style='color: var(--text-muted); font-family: \"JetBrains Mono\", monospace;'>#</span><input type='text' id='color_input_{c_id}' value='{hex_val}' oninput=\"document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value\"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
+                <td style='font-family: \"Fira Code\", monospace; font-weight: 600; color: var(--text-muted);'>ID:{c_id}</td>
+                <td><div class='flex-row'><div class='color-preview' style='background-color:#{hex_val}'></div><span style='font-family: \"Fira Code\", monospace;'>#{hex_val}</span></div></td>
+                <td style='max-width: 350px;'>{loc_html}</td>
+                <td><div class='flex-row'><span style='color: var(--text-muted); font-family: \"Fira Code\", monospace;'>#</span><input type='text' class='hex-input' id='color_input_{c_id}' value='{hex_val}' oninput=\"document.getElementById('prev_{c_id}').style.backgroundColor = '#' + this.value\"><div id='prev_{c_id}' class='color-preview' style='background-color:#{hex_val};'></div></div></td>
                 <td style='text-align: center;'>
-                    <button class='btn-red btn-small' data-color-id='{c_id}' py-click='delete_color_handler' style='background: transparent; color: var(--accent-danger); border: 1px solid var(--accent-danger);'><i class='ph-bold ph-trash'></i> Delete</button>
+                    <button class='btn' data-color-id='{c_id}' py-click='delete_color_handler' style='background: rgba(244, 63, 94, 0.1); color: var(--neon-red); border: 1px solid rgba(244, 63, 94, 0.3); padding: 6px 10px;'><i class='ph-bold ph-trash'></i> Nuke</button>
                 </td>
             </tr>
             """
@@ -840,7 +1016,7 @@
         if modifier:
             modifier.remove_specific_color_link(c_id, loc_data)
             save_session_to_localstorage()
-            log(f"Removed specific {loc_type.upper()} styling link.")
+            log(f"Severed {loc_type.upper()} style link.")
             render_color_injector(None)
             render_grid_visualizer(None)
 
@@ -850,7 +1026,7 @@
         if modifier:
             modifier.remove_color_and_usages(c_id)
             save_session_to_localstorage()
-            log(f"Cleared Core Color {c_id} and stripped its formatting rules from the XML.")
+            log(f"Nuked Color ID {c_id} from dictionary.")
             render_color_injector(None)
             render_grid_visualizer(None) 
 
@@ -859,14 +1035,12 @@
         if modifier:
             new_id = modifier.add_new_color("255", "255", "255")
             save_session_to_localstorage()
-            log(f"Injected new blank color with ID {new_id}. You can edit its Hex now.")
+            log(f"Injected blank node ID {new_id}.")
             render_color_injector(None)
 
     def inject_colors_to_active_file(event):
         modifier = get_active_modifier()
-        if not modifier or not modifier.root:
-            log("Error: No file selected.")
-            return
+        if not modifier or not modifier.root: return log("No file selected.")
             
         clean_data = []
         for c_id in editable_color_ids:
@@ -878,17 +1052,13 @@
             modifier.inject_colors(clean_data)
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
-            
             save_session_to_localstorage()
-            log(f"Colors updated for {active_filename} and downloaded!")
+            log(f"Dictionary updated and file generated.")
             render_grid_visualizer(None)
 
-    # --- THEME IMPORT/EXPORT ENGINES ---
     def export_theme_handler(event):
         modifier = get_active_modifier()
-        if not modifier or not modifier.root:
-            log("Error: No file selected to export theme from.")
-            return
+        if not modifier or not modifier.root: return log("Select file to export theme from.")
             
         color_list = modifier.get_detailed_colors()
         theme_data = {c["id"]: c["hex"] for c in color_list}
@@ -896,7 +1066,7 @@
         
         blob = window.Blob.new([json_str], {type: "application/json"})
         trigger_browser_download(blob, "epm_theme_preset.json")
-        log("Theme Preset JSON exported successfully.")
+        log("JSON Theme exported.")
 
     async def import_theme_handler(event):
         file_input = document.getElementById("theme-upload")
@@ -909,18 +1079,16 @@
             theme_data = json.loads(text_content)
             modifier = get_active_modifier()
             if modifier:
-                # Convert loaded JSON dict into the clean_data tuple list format expected by inject_colors
                 clean_data = [(k, v) for k, v in theme_data.items()]
                 modifier.inject_colors(clean_data)
-                
                 save_session_to_localstorage()
                 render_color_injector(None)
                 render_grid_visualizer(None)
-                log(f"Theme imported and applied to {active_filename}!")
+                log(f"Theme mapped to {active_filename}")
         except Exception as e:
-            log(f"Error importing theme: {e}")
+            log(f"Theme Error: {e}")
             
-        file_input.value = "" # Reset the UI file input
+        file_input.value = ""
 
     def download_single(xml_string, filename):
         blob = window.Blob.new([xml_string], {type: "text/xml"})
@@ -941,9 +1109,7 @@
         document.body.removeChild(a)
         window.URL.revokeObjectURL(url)
 
-    # Automatically load the user's previous session on boot
     load_session_from_localstorage()
-
 </script>
 </body>
 </html>
