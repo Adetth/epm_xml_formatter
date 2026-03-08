@@ -16,7 +16,6 @@
 
     <style>
         :root {
-            /* Modern Zinc Theme Palette */
             --bg-body: #09090b;
             --bg-container: #18181b;
             --bg-panel: #27272a;
@@ -26,14 +25,13 @@
             --text-muted: #a1a1aa;
             --border-color: #3f3f46;
             
-            /* Sleek Accents */
-            --accent-primary: #6366f1; /* Indigo */
+            --accent-primary: #6366f1; 
             --accent-primary-hover: #4f46e5;
-            --accent-success: #10b981; /* Emerald */
+            --accent-success: #10b981; 
             --accent-success-hover: #059669;
-            --accent-danger: #ef4444; /* Red */
+            --accent-danger: #ef4444; 
             --accent-danger-hover: #dc2626;
-            --accent-warning: #f59e0b; /* Amber */
+            --accent-warning: #f59e0b; 
             
             --grid-font-size: 12px;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -41,15 +39,14 @@
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
         }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-track { background: #09090b; }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
         body { 
             font-family: 'Inter', system-ui, sans-serif; 
-            background: radial-gradient(circle at top, #18181b, var(--bg-body) 80%);
+            background: radial-gradient(circle at top, #18181b, #09090b 80%);
             margin: 0; padding: 40px 20px; 
             color: var(--text-main); 
             min-height: 100vh;
@@ -68,12 +65,9 @@
             margin-top: 0; margin-bottom: 25px; 
             font-size: 1.8rem; font-weight: 700;
             background: -webkit-linear-gradient(45deg, #a5b4fc, #6366f1);
-            background: linear-gradient(45deg, #a5b4fc, #6366f1);
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         
-        /* Modernized Buttons */
         button { 
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             padding: 10px 18px; background: var(--bg-panel); color: var(--text-main); 
@@ -91,7 +85,6 @@
         .btn-red:hover { background: var(--accent-danger-hover); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
         .btn-small { padding: 6px 12px; font-size: 13px; border-radius: 6px; }
         
-        /* Glassmorphism Control Bar */
         .global-control-bar { 
             background: rgba(39, 39, 42, 0.6); backdrop-filter: blur(12px);
             padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); 
@@ -99,7 +92,7 @@
         }
         .control-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         select { 
-            padding: 10px 14px; background: var(--bg-body); color: var(--text-main); 
+            padding: 10px 14px; background: #09090b; color: var(--text-main); 
             border: 1px solid var(--border-color); border-radius: 8px; 
             width: 320px; font-size: 14px; font-family: 'Inter', sans-serif;
             appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -108,14 +101,13 @@
         select:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
         
         #status-log { 
-            padding: 12px 16px; background: var(--bg-body); border-left: 4px solid var(--accent-primary); 
+            padding: 12px 16px; background: #09090b; border-left: 4px solid var(--accent-primary); 
             border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); 
             flex-grow: 1; margin: 0; box-shadow: inset var(--shadow-sm);
         }
         
-        /* Sleek Pill Tabs */
         .tabs { 
-            display: inline-flex; gap: 4px; background: var(--bg-body); 
+            display: inline-flex; gap: 4px; background: #09090b; 
             padding: 6px; border-radius: 10px; margin-bottom: 25px; 
             border: 1px solid var(--border-color);
         }
@@ -132,7 +124,6 @@
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* File Upload Area */
         .file-upload-wrapper { 
             display: flex; align-items: center; gap: 15px; margin-bottom: 20px; 
             background: rgba(39, 39, 42, 0.3); padding: 15px; border-radius: 10px; 
@@ -148,24 +139,21 @@
         .custom-file-label:hover { background: var(--bg-panel-hover); border-color: var(--accent-primary); color: var(--accent-primary); }
         input[type="checkbox"].file-checkbox { 
             width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-primary); 
-            border-radius: 4px; background: var(--bg-body); border: 1px solid var(--border-color);
+            border-radius: 4px; background: #09090b; border: 1px solid var(--border-color);
         }
         
-        /* Modern Data Tables */
         .data-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; border-radius: 10px; border: 1px solid var(--border-color); overflow: hidden; }
-        .data-table th { background: var(--bg-body); color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
+        .data-table th { background: #09090b; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid var(--border-color); padding: 14px 16px; }
         .data-table td { background: var(--bg-container); padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
         .data-table tr:last-child td { border-bottom: none; }
         .data-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
 
-        /* Grid Visualizer Overrides */
-        .table-container { overflow-x: auto; max-height: 500px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-body); padding: 0; }
+        .table-container { overflow-x: auto; max-height: 500px; border-radius: 10px; border: 1px solid var(--border-color); background: #09090b; padding: 0; }
         .grid-table { border-collapse: collapse; width: 100%; }
         .grid-table th, .grid-table td { font-size: var(--grid-font-size); transition: font-size 0.2s; border: 1px solid var(--bg-container); padding: 10px; text-align: center; min-width: 100px; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
         
-        /* Form Inputs */
         input[type="text"] { 
-            padding: 8px 12px; background: var(--bg-body); color: var(--text-main); 
+            padding: 8px 12px; background: #09090b; color: var(--text-main); 
             border: 1px solid var(--border-color); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; transition: 0.2s;
         }
         input[type="text"]:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
@@ -173,12 +161,10 @@
         .flex-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
         .color-preview { width: 28px; height: 28px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); flex-shrink: 0; transition: 0.2s;}
 
-        /* Textareas */
-        .xml-textarea { width: 100%; height: 250px; background: var(--bg-body); color: var(--text-main); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.4; margin-bottom: 15px; white-space: pre; font-size: 13px; }
+        .xml-textarea { width: 100%; height: 250px; background: #09090b; color: var(--text-main); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.4; margin-bottom: 15px; white-space: pre; font-size: 13px; }
         .xml-textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
-        #console-output { width: 100%; height: 450px; background: var(--bg-body); color: var(--accent-success); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.5; font-size: 13px; }
+        #console-output { width: 100%; height: 450px; background: #09090b; color: var(--accent-success); font-family: 'JetBrains Mono', monospace; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; resize: vertical; box-sizing: border-box; line-height: 1.5; font-size: 13px; }
 
-        /* Chips & Alerts */
         .loc-chip { display: inline-flex; align-items: center; background: var(--bg-panel); padding: 4px 10px; border-radius: 20px; margin: 4px 4px 0 0; font-size: 12px; border: 1px solid var(--border-color); font-family: 'JetBrains Mono', monospace; }
         .loc-del { color: var(--text-muted); cursor: pointer; margin-left: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .loc-del:hover { color: var(--accent-danger); }
@@ -186,7 +172,6 @@
         .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #fcd34d; display: flex; gap: 12px; align-items: flex-start; line-height: 1.5; font-size: 14px; }
         .alert-warning i { font-size: 20px; color: var(--accent-warning); flex-shrink: 0; }
 
-        /* Floating Utilities */
         .version-tag { position: fixed; bottom: 15px; right: 20px; text-align: right; z-index: 1000; pointer-events: none; }
         #app-version-tag { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }
         .signature { font-size: 11px; margin-top: 4px; color: var(--border-color); font-weight: 500; letter-spacing: 0.5px; }
@@ -194,20 +179,19 @@
         .feedback-trigger-btn { position: fixed; bottom: 15px; left: 20px; background: var(--bg-container); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; z-index: 1000; box-shadow: var(--shadow-lg); transition: 0.2s; display: flex; align-items: center; gap: 8px; }
         .feedback-trigger-btn:hover { background: var(--bg-panel); border-color: var(--accent-primary); color: var(--accent-primary); transform: translateY(-2px); }
 
-        /* Feedback Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 9, 11, 0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .feedback-box { background: var(--bg-container); padding: 35px; border-radius: 16px; border: 1px solid var(--border-color); width: 450px; max-width: 90vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes modalPop { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
         .feedback-box h3 { margin-top: 0; margin-bottom: 20px; color: var(--text-main); font-size: 1.4em; display: flex; align-items: center; gap: 8px; }
-        .feedback-input { width: 100%; padding: 12px 14px; margin-bottom: 15px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
-        .feedback-textarea { width: 100%; height: 120px; padding: 12px 14px; margin-bottom: 25px; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; resize: vertical; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
+        .feedback-input { width: 100%; padding: 12px 14px; margin-bottom: 15px; background: #09090b; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
+        .feedback-textarea { width: 100%; height: 120px; padding: 12px 14px; margin-bottom: 25px; background: #09090b; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; box-sizing: border-box; resize: vertical; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s; }
         .feedback-input:focus, .feedback-textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
     </style>
 </head>
 <body>
 
 <script>
-    const APP_ACTIVATED = false; 
+    const APP_ACTIVATED = true; 
     document.addEventListener("DOMContentLoaded", () => {
         if (!APP_ACTIVATED) {
             document.getElementById("main-app-container").style.display = "none";
@@ -238,16 +222,19 @@
 </script>
 
 <div class="main-container" id="main-app-container">
-    <h2 class="app-title"><i class="ph-fill ph-magic-wand"></i> Adetth's Oracle EPM XML Multi-Tool</h2>
+    <h2 class="app-title"><i class="ph-fill ph-magic-wand"></i> Oracle EPM XML Multi-Tool</h2>
     
     <div class="global-control-bar">
         <div>
             <span class="control-label">Currently Inspecting</span>
-            <select id="global-file-select" py-change="switch_active_file">
-                <option value="">No files loaded</option>
-            </select>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="global-file-select" py-change="switch_active_file">
+                    <option value="">No files loaded</option>
+                </select>
+                <button py-click="undo_last_action" class="btn-small" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);" title="Undo Last Action"><i class="ph-bold ph-arrow-u-up-left"></i> Undo</button>
+            </div>
         </div>
-        <div id="status-log">Status: Awaiting file uploads...</div>
+        <div id="status-log">Status: Booting PyScript Environment...</div>
     </div>
 
     <div class="tabs">
@@ -302,7 +289,7 @@
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--accent-primary);"> Data Type</label>
             </div>
             
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; background: var(--bg-body); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; background: #09090b; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
                 <button class="btn-small" style="background: transparent; border: none; padding: 4px 8px;" onclick="changeZoom(-2)"><i class="ph ph-minus"></i></button>
                 <span id="zoom-display" style="width: 30px; text-align: center; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px;">12</span>
                 <button class="btn-small" style="background: transparent; border: none; padding: 4px 8px;" onclick="changeZoom(2)"><i class="ph ph-plus"></i></button>
@@ -331,7 +318,13 @@
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button py-click="render_color_injector"><i class="ph ph-arrows-clockwise"></i> Refresh Colors</button>
             <button py-click="add_color_handler" style="background: var(--accent-warning); color: #000; border: none;"><i class="ph-bold ph-plus"></i> Add Blank Color</button>
-            <button py-click="inject_colors_to_active_file" class="btn-primary" style="margin-left: auto;"><i class="ph-bold ph-paint-brush-broad"></i> Inject Hex & Download</button>
+            
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button py-click="export_theme_handler" style="background: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-main);"><i class="ph-bold ph-download-simple"></i> Export Theme</button>
+                <label for="theme-upload" class="custom-file-label" style="margin: 0; background: var(--bg-panel); border: 1px solid var(--border-color);"><i class="ph-bold ph-upload-simple"></i> Import Theme</label>
+                <input type="file" id="theme-upload" accept=".json" py-change="import_theme_handler">
+                <button py-click="inject_colors_to_active_file" class="btn-primary"><i class="ph-bold ph-paint-brush-broad"></i> Inject Hex & Download</button>
+            </div>
         </div>
         
         <table class="data-table">
@@ -459,6 +452,7 @@
     import sys
     import io
     import zipfile
+    import json
     from xml_analyzer import XMLAnalyzer
     from pyscript import document, window
     from pyodide.ffi import to_js
@@ -490,6 +484,47 @@
         document.getElementById("status-log").innerText = f"Status: {msg}"
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
+
+    # --- BROWSER PERSISTENCE ENGINE ---
+    def save_session_to_localstorage():
+        try:
+            session_data = {}
+            for fname, mod in file_registry.items():
+                session_data[fname] = mod.get_final_xml_string()
+            window.localStorage.setItem("epm_xml_session", json.dumps(session_data))
+        except Exception as e:
+            print(f"LocalStorage Quota Exceeded or Error. RAM retains files safely. ({e})")
+
+    def load_session_from_localstorage():
+        global active_filename
+        saved_data = window.localStorage.getItem("epm_xml_session")
+        if saved_data:
+            try:
+                session_data = json.loads(saved_data)
+                for fname, xml_str in session_data.items():
+                    mod = XMLAnalyzer()
+                    mod.load_from_string(xml_str)
+                    file_registry[fname] = mod
+                if file_registry:
+                    active_filename = list(file_registry.keys())[0]
+                    refresh_file_manager_ui()
+                    refresh_global_dropdown()
+                    switch_active_file(None)
+                    log(f"Session Restored: Loaded {len(file_registry)} files from browser cache.")
+            except Exception as e:
+                print(f"Failed to restore session: {e}")
+                window.localStorage.removeItem("epm_xml_session")
+
+    # --- UNDO ENGINE ---
+    def undo_last_action(event):
+        modifier = get_active_modifier()
+        if modifier and modifier.undo():
+            save_session_to_localstorage()
+            render_grid_visualizer(None)
+            render_color_injector(None)
+            log(f"Undid previous action on {active_filename}.")
+        else:
+            log("No history to undo for this file.")
 
     async def load_files_to_ram(event):
         global active_filename, file_registry
@@ -536,6 +571,7 @@
         refresh_global_dropdown()
         switch_active_file(None)
         
+        save_session_to_localstorage()
         log(f"Successfully added {loaded_count} files! Total in RAM: {len(file_registry)}")
 
     def clear_all_files(event):
@@ -546,6 +582,7 @@
         refresh_global_dropdown()
         render_grid_visualizer(None)
         render_color_injector(None)
+        save_session_to_localstorage()
         log("All files have been cleared from memory.")
 
     def refresh_file_manager_ui():
@@ -614,6 +651,7 @@
                     print(f"========== BATCH FORMAT FAILED: {fname} Error: {e} ==========")
 
         download_zip(memory_zip.getbuffer(), "EPM_Formatted_Export.zip")
+        save_session_to_localstorage()
         log(f"Success! {len(selected_files)} files formatted and downloaded as a ZIP.")
         render_grid_visualizer(None)
 
@@ -631,6 +669,7 @@
             download_single(xml_string, active_filename)
             print(f"========== SINGLE FORMAT SUCCESS ==========")
             
+            save_session_to_localstorage()
             log(f"Formatted and downloaded: {active_filename}")
             render_grid_visualizer(None)
         except Exception as e:
@@ -732,6 +771,7 @@
         for fname, mod in file_registry.items():
             mod.strip_legacy_formatting()
             
+        save_session_to_localstorage()
         log(f"Successfully stripped legacy colors and styling overrides from ALL {len(file_registry)} forms in memory.")
         render_grid_visualizer(None)
         render_color_injector(None)
@@ -799,6 +839,7 @@
         modifier = get_active_modifier()
         if modifier:
             modifier.remove_specific_color_link(c_id, loc_data)
+            save_session_to_localstorage()
             log(f"Removed specific {loc_type.upper()} styling link.")
             render_color_injector(None)
             render_grid_visualizer(None)
@@ -808,6 +849,7 @@
         modifier = get_active_modifier()
         if modifier:
             modifier.remove_color_and_usages(c_id)
+            save_session_to_localstorage()
             log(f"Cleared Core Color {c_id} and stripped its formatting rules from the XML.")
             render_color_injector(None)
             render_grid_visualizer(None) 
@@ -816,6 +858,7 @@
         modifier = get_active_modifier()
         if modifier:
             new_id = modifier.add_new_color("255", "255", "255")
+            save_session_to_localstorage()
             log(f"Injected new blank color with ID {new_id}. You can edit its Hex now.")
             render_color_injector(None)
 
@@ -833,12 +876,51 @@
                 
         if clean_data:
             modifier.inject_colors(clean_data)
-            
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
             
+            save_session_to_localstorage()
             log(f"Colors updated for {active_filename} and downloaded!")
             render_grid_visualizer(None)
+
+    # --- THEME IMPORT/EXPORT ENGINES ---
+    def export_theme_handler(event):
+        modifier = get_active_modifier()
+        if not modifier or not modifier.root:
+            log("Error: No file selected to export theme from.")
+            return
+            
+        color_list = modifier.get_detailed_colors()
+        theme_data = {c["id"]: c["hex"] for c in color_list}
+        json_str = json.dumps(theme_data, indent=4)
+        
+        blob = window.Blob.new([json_str], {type: "application/json"})
+        trigger_browser_download(blob, "epm_theme_preset.json")
+        log("Theme Preset JSON exported successfully.")
+
+    async def import_theme_handler(event):
+        file_input = document.getElementById("theme-upload")
+        if file_input.files.length == 0: return
+        
+        file = file_input.files.item(0)
+        text_content = await file.text()
+        
+        try:
+            theme_data = json.loads(text_content)
+            modifier = get_active_modifier()
+            if modifier:
+                # Convert loaded JSON dict into the clean_data tuple list format expected by inject_colors
+                clean_data = [(k, v) for k, v in theme_data.items()]
+                modifier.inject_colors(clean_data)
+                
+                save_session_to_localstorage()
+                render_color_injector(None)
+                render_grid_visualizer(None)
+                log(f"Theme imported and applied to {active_filename}!")
+        except Exception as e:
+            log(f"Error importing theme: {e}")
+            
+        file_input.value = "" # Reset the UI file input
 
     def download_single(xml_string, filename):
         blob = window.Blob.new([xml_string], {type: "text/xml"})
@@ -859,7 +941,9 @@
         document.body.removeChild(a)
         window.URL.revokeObjectURL(url)
 
+    # Automatically load the user's previous session on boot
+    load_session_from_localstorage()
+
 </script>
 </body>
-
 </html>
