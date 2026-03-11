@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle EPBCS: Dual-Banking Architecture Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            700: '#0f766e',
+                            900: '#134e4a',
+                        },
+                        oracle: '#C74634'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* EPBCS Form Grid Styles */
+        .epbcs-grid { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+        .epbcs-grid th, .epbcs-grid td { border: 1px solid #d1d5db; padding: 0.5rem; text-align: right; }
+        .epbcs-grid th { background-color: #f3f4f6; font-weight: 600; text-align: center; }
+        .epbcs-grid .row-header { text-align: left; background-color: #f9fafb; font-weight: 500; width: 300px; }
+        .epbcs-cell-input { width: 100%; text-align: right; border: 1px solid transparent; background: transparent; outline: none; }
+        .epbcs-cell-input:focus { border: 1px solid #14b8a6; background: #fff; }
+        .epbcs-cell-invalid { background-color: #fee2e2; cursor: not-allowed; }
+        .epbcs-cell-readonly { background-color: #f3f4f6; color: #6b7280; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20 hidden md:flex flex-shrink-0">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-cloud text-oracle"></i> EPBCS Masterclass
+            </h1>
+            <p class="text-xs text-slate-500 mt-2">Dual-Banking Architecture</p>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4" id="nav-menu">
+            <!-- Nav items injected by JS -->
+        </nav>
+        <div class="p-4 border-t border-slate-800 text-xs text-slate-500 text-center">
+            Interactive Learning Module
+        </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <div class="md:hidden fixed top-0 left-0 right-0 bg-slate-900 text-white p-4 z-30 flex justify-between items-center shadow-md">
+        <h1 class="text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-cloud text-oracle"></i> EPBCS Masterclass
+        </h1>
+        <button id="mobile-menu-btn" class="text-slate-300 hover:text-white">
+            <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-slate-900 z-40 hidden flex-col pt-16">
+        <button id="mobile-close-btn" class="absolute top-4 right-4 text-slate-300 hover:text-white">
+            <i class="fa-solid fa-times text-2xl"></i>
+        </button>
+        <nav class="flex-1 overflow-y-auto p-4" id="mobile-nav-menu">
+            <!-- Mobile nav items injected by JS -->
+        </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden mt-14 md:mt-0 relative">
+        <header class="bg-white shadow-sm border-b border-slate-200 px-8 py-5 flex justify-between items-center z-10">
+            <div>
+                <h2 id="module-title" class="text-2xl font-bold text-slate-800">Module Title</h2>
+                <p id="module-subtitle" class="text-sm text-slate-500 mt-1">Subtitle goes here</p>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-sm text-brand-700 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
+                <i class="fa-solid fa-graduation-cap"></i> Senior Architect Level
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 scroll-smooth" id="content-area">
+            <!-- Content injected by JS -->
+        </div>
+    </main>
+
+    <!-- Content Data Structure -->
+    <script>
+        const contentData = [
+            {
+                id: 'intro',
+                icon: 'fa-book-open',
+                title: '1. Core Architecture',
+                subtitle: 'Multidimensional Physics & Naming Conventions',
+                content: `
+                    <div class="max-w-4xl mx-auto space-y-8 fade-in">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4 border-b pb-2">The Dimensional Skeleton</h3>
+                            <p class="text-slate-600 leading-relaxed mb-4">
+                                Oracle EPBCS relies on a multidimensional database. Dimensions are strictly categorized as <strong>Dense</strong> or <strong>Sparse</strong>.
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                    <div class="flex items-center gap-2 text-brand-700 font-bold mb-2">
+                                        <i class="fa-solid fa-cube"></i> Dense Dimensions
+                                    </div>
+                                    <p class="text-sm text-slate-600">Form the physical data blocks. High data density intersections (e.g., Account, Period). Target block size: 8KB - 200KB.</p>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                    <div class="flex items-center gap-2 text-blue-700 font-bold mb-2">
+                                        <i class="fa-solid fa-cubes"></i> Sparse Dimensions
+                                    </div>
+                                    <p class="text-sm text-slate-600">Form the index pointing to data blocks. Low data density intersections (e.g., Entity, Scenario, Product).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4 border-b pb-2">Strict Naming Conventions</h3>
+                            <p class="text-slate-600 leading-relaxed mb-4">
+                                A senior-level application requires meticulous naming standards. Member names are limited to 80 characters.
+                            </p>
+                            <div class="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200 mb-4 text-sm">
+                                <strong><i class="fa-solid fa-triangle-exclamation"></i> Prohibited Characters:</strong> 
+                                Quotation marks ("), Slashes (/ \\), Brackets [ ], HTML tags.
+                                Beginning characters cannot be: Period (.), Comma (,), Math operators (+ - =), At Sign (@).
+                            </div>
+                            
+                            <h4 class="font-semibold text-slate-700 mt-6 mb-2">The Alphanumeric Prefix Rule</h4>
+                            <p class="text-sm text-slate-600 mb-4">
+                                Never use purely numeric strings (like '1000' for an account). Excel Smart View will strip leading zeros and corrupt data. Always use defined prefixes:
+                            </p>
+                            <ul class="space-y-2 text-sm text-slate-700">
+                                <li><code class="bg-slate-100 px-2 py-1 rounded border text-blue-600">A_</code> : Accounts (e.g., A_1000)</li>
+                                <li><code class="bg-slate-100 px-2 py-1 rounded border text-blue-600">E_</code> : Entities (e.g., E_Total_Bank)</li>
+                                <li><code class="bg-slate-100 px-2 py-1 rounded border text-blue-600">P_</code> : Products (e.g., P_Conv_Mortgage)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'mock-dimensions',
+                icon: 'fa-sitemap',
+                title: '2. Dual-Bank Mock Dimensions',
+                subtitle: 'Entity, Account, and Product Structures',
+                content: `
+                    <div class="max-w-5xl mx-auto space-y-8 fade-in">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-2">The Dual-Banking Challenge</h3>
+                            <p class="text-slate-600 leading-relaxed mb-6">
+                                Dual banking systems run two distinct models under one corporate umbrella: Conventional (interest-based) and Islamic (Sharia-compliant, profit-sharing, prohibiting Riba/interest). The EPBCS architecture must cleanly partition these while allowing consolidated corporate reporting.
+                            </p>
+
+                            <!-- Entity Dimension -->
+                            <div class="mb-8">
+                                <h4 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-building text-brand-600"></i> Entity Dimension (Alternate Hierarchies)
+                                </h4>
+                                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                    <table class="min-w-full text-sm text-left">
+                                        <thead class="bg-slate-50 text-slate-700 font-semibold border-b">
+                                            <tr>
+                                                <th class="px-4 py-3">Member Name (Prefix: E_)</th>
+                                                <th class="px-4 py-3">Alias (Display)</th>
+                                                <th class="px-4 py-3">Storage</th>
+                                                <th class="px-4 py-3">Operator</th>
+                                                <th class="px-4 py-3 text-xs text-slate-500 font-normal">Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200 bg-white text-slate-600">
+                                            <tr class="bg-slate-50 font-semibold"><td class="px-4 py-2">E_Total_Bank</td><td class="px-4 py-2">Global Horizon Bank Corp</td><td class="px-4 py-2">Dynamic Calc</td><td class="px-4 py-2">(+)</td><td>Primary Rollup</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8">E_Conventional_Div</td><td class="px-4 py-2">Conventional Banking Div</td><td class="px-4 py-2">Dynamic Calc</td><td class="px-4 py-2">(+)</td><td></td></tr>
+                                            <tr><td class="px-4 py-2 pl-12 text-blue-600">E_Conv_UAE</td><td class="px-4 py-2">Conventional Branch - Dubai</td><td class="px-4 py-2 font-bold">Store</td><td class="px-4 py-2">(+)</td><td>Base Entity</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8">E_Islamic_Div</td><td class="px-4 py-2">Islamic Banking Div</td><td class="px-4 py-2">Dynamic Calc</td><td class="px-4 py-2">(+)</td><td></td></tr>
+                                            <tr><td class="px-4 py-2 pl-12 text-emerald-600">E_Isl_UAE</td><td class="px-4 py-2">Islamic Branch - Dubai</td><td class="px-4 py-2 font-bold">Store</td><td class="px-4 py-2">(+)</td><td>Base Entity</td></tr>
+                                            <tr class="bg-slate-50 border-t-2 border-slate-300 font-semibold"><td class="px-4 py-2">E_Geo_Reporting</td><td class="px-4 py-2">Geographic Alternate Rollup</td><td class="px-4 py-2">Dynamic Calc</td><td class="px-4 py-2 text-red-500 font-bold">(~) Ignore</td><td>Prevents double counting</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8">E_MENA_Region</td><td class="px-4 py-2">Middle East & North Africa</td><td class="px-4 py-2">Dynamic Calc</td><td class="px-4 py-2">(+)</td><td></td></tr>
+                                            <tr><td class="px-4 py-2 pl-12 text-blue-600">E_Conv_UAE</td><td class="px-4 py-2">Conventional Branch - Dubai</td><td class="px-4 py-2 font-bold text-purple-600">Shared</td><td class="px-4 py-2">(+)</td><td>Alternate Hierarchy link</td></tr>
+                                            <tr><td class="px-4 py-2 pl-12 text-emerald-600">E_Isl_UAE</td><td class="px-4 py-2">Islamic Branch - Dubai</td><td class="px-4 py-2 font-bold text-purple-600">Shared</td><td class="px-4 py-2">(+)</td><td>Alternate Hierarchy link</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Account Dimension -->
+                            <div class="mb-8">
+                                <h4 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-file-invoice-dollar text-brand-600"></i> Account Dimension (FAS 30 & Conventional)
+                                </h4>
+                                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                    <table class="min-w-full text-sm text-left">
+                                        <thead class="bg-slate-50 text-slate-700 font-semibold border-b">
+                                            <tr>
+                                                <th class="px-4 py-3">Member Name (Prefix: A_)</th>
+                                                <th class="px-4 py-3">Alias (Display)</th>
+                                                <th class="px-4 py-3">UDA</th>
+                                                <th class="px-4 py-3">Operator</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200 bg-white text-slate-600">
+                                            <tr class="bg-slate-50 font-semibold"><td class="px-4 py-2">A_Total_Assets</td><td class="px-4 py-2">Total Bank Assets</td><td class="px-4 py-2"></td><td class="px-4 py-2">(+)</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8 text-blue-600">A_Conv_Mortgage</td><td class="px-4 py-2">Conventional Mortgage Loans</td><td class="px-4 py-2 text-xs bg-yellow-100 px-2 py-1 rounded inline-block">HSP_DYN_PREDICT</td><td class="px-4 py-2">(+)</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8 text-blue-600">A_Conv_ECL</td><td class="px-4 py-2">Expected Credit Loss - Conv</td><td class="px-4 py-2"></td><td class="px-4 py-2 text-red-500 font-bold">(-) Sub</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8 text-emerald-600">A_Murabaha_Fin</td><td class="px-4 py-2">Murabaha Financing (Cost-Plus)</td><td class="px-4 py-2 text-xs bg-yellow-100 px-2 py-1 rounded inline-block">HSP_DYN_PREDICT</td><td class="px-4 py-2">(+)</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8 text-emerald-600">A_Ijarah_MBT</td><td class="px-4 py-2">Ijarah Muntahia Bittamleek (Lease)</td><td class="px-4 py-2 text-xs bg-yellow-100 px-2 py-1 rounded inline-block">HSP_DYN_PREDICT</td><td class="px-4 py-2">(+)</td></tr>
+                                            <tr><td class="px-4 py-2 pl-8 text-emerald-600">A_Isl_ECL_FAS30</td><td class="px-4 py-2">Impairment Allowance FAS 30</td><td class="px-4 py-2"></td><td class="px-4 py-2 text-red-500 font-bold">(-) Sub</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-2"><strong>Note:</strong> The <code class="bg-slate-100 px-1 rounded">HSP_DYN_PREDICT</code> UDA tells the EPBCS Auto Predict engine to execute machine-learning predictive forecasts on these base accounts.</p>
+                            </div>
+
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'interactive-form',
+                icon: 'fa-table-cells',
+                title: '3. Form Layout & Valid Intersections',
+                subtitle: 'Interactive Mock: FRM_Islamic_Income_Statement',
+                content: `
+                    <div class="max-w-5xl mx-auto space-y-6 fade-in">
+                        
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-2">Valid Intersections Architecture</h3>
+                            <p class="text-sm text-slate-600 mb-4">
+                                Data Security alone cannot prevent a user from entering Conventional Mortgage revenue into an Islamic branch. 
+                                We deploy a <strong>Valid Intersection Group</strong> (<code>VI_Dual_Bank_Separation</code>) to physically lock invalid combinations.
+                            </p>
+                            <div class="bg-slate-900 text-slate-300 p-4 rounded text-sm font-mono overflow-x-auto">
+                                <p><span class="text-emerald-400">Rule 1 (Islamic Ring-Fence):</span> Entity: Descendants(E_Islamic_Div) <strong>MUST MATCH</strong> Account: Descendants(A_Isl_Assets) <strong>AND</strong> Product: Descendants(P_Isl_Products)</p>
+                                <p class="mt-2"><span class="text-blue-400">Rule 2 (Conventional Ring-Fence):</span> Entity: Descendants(E_Conventional_Div) <strong>MUST MATCH</strong> Account: Descendants(A_Conv_Assets) <strong>AND</strong> Product: Descendants(P_Conv_Products)</p>
+                            </div>
+                        </div>
+
+                        <!-- INTERACTIVE FORM SIMULATOR -->
+                        <div class="bg-white rounded-xl shadow-lg border border-slate-300 overflow-hidden">
+                            <div class="bg-slate-100 border-b border-slate-300 px-4 py-2 flex items-center justify-between">
+                                <div class="font-semibold text-slate-700 text-sm"><i class="fa-solid fa-table text-oracle mr-2"></i> FRM_Islamic_Income_Statement</div>
+                                <div class="flex gap-2">
+                                    <button class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-1 text-xs rounded shadow-sm" onclick="alert('Smart View Flex Form Export Triggered')"><i class="fa-regular fa-file-excel text-green-600 mr-1"></i> Open in Smart View</button>
+                                    <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 text-xs rounded shadow-sm"><i class="fa-solid fa-play mr-1"></i> Save & Calculate</button>
+                                </div>
+                            </div>
+                            
+                            <!-- POV Bar -->
+                            <div class="bg-white border-b border-slate-200 px-4 py-2 flex gap-6 text-sm flex-wrap">
+                                <div class="flex items-center gap-2"><span class="text-slate-500 font-medium">Scenario:</span> <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-200">OEP_Plan</span></div>
+                                <div class="flex items-center gap-2"><span class="text-slate-500 font-medium">Version:</span> <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-200">Working</span></div>
+                                <div class="flex items-center gap-2"><span class="text-slate-500 font-medium">Years:</span> <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-200">FY26</span></div>
+                                <div class="flex items-center gap-2"><span class="text-slate-500 font-medium">Currency:</span> <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-200">Local</span></div>
+                            </div>
+
+                            <!-- Page Axis (Interactive) -->
+                            <div class="bg-blue-50 border-b border-blue-100 px-4 py-3 flex flex-wrap gap-4 items-center">
+                                <div class="text-sm font-semibold text-blue-900 w-full md:w-auto mb-1 md:mb-0">Page Axis Selectors:</div>
+                                
+                                <div class="flex flex-col">
+                                    <label class="text-xs text-slate-500 font-medium mb-1">Entity (&Target_Branch)</label>
+                                    <select id="sim-entity" class="border border-slate-300 rounded px-2 py-1 text-sm bg-white shadow-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" onchange="validateIntersection()">
+                                        <option value="islamic" selected>E_Isl_UAE: Islamic Branch - Dubai</option>
+                                        <option value="conventional">E_Conv_UK: Conventional Branch - London</option>
+                                    </select>
+                                </div>
+
+                                <div class="flex flex-col">
+                                    <label class="text-xs text-slate-500 font-medium mb-1">Product</label>
+                                    <select id="sim-product" class="border border-slate-300 rounded px-2 py-1 text-sm bg-white shadow-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" onchange="validateIntersection()">
+                                        <option value="islamic" selected>P_Mudarabah_Dep: Mudarabah Investment</option>
+                                        <option value="conventional">P_Fixed_Dep: Fixed Term Deposit (Interest)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Validation Warning Banner -->
+                            <div id="validation-banner" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-sm" role="alert">
+                                <p class="font-bold"><i class="fa-solid fa-ban mr-1"></i> Valid Intersection Error Triggered</p>
+                                <p>You cannot combine a Conventional Entity/Product with Islamic Metadata. The grid has been locked.</p>
+                            </div>
+
+                            <!-- Data Grid -->
+                            <div class="overflow-x-auto p-4 bg-white" id="grid-container">
+                                <div class="text-xs text-slate-500 mb-2 flex justify-between items-center">
+                                    <span>Metadata Display: <strong>Member Name : Alias</strong> (Required for Dual-Banking Verification)</span>
+                                </div>
+                                <table class="epbcs-grid">
+                                    <thead>
+                                        <tr>
+                                            <th class="row-header">Account (Row Axis)</th>
+                                            <th>Jan</th>
+                                            <th>Feb</th>
+                                            <th>Mar</th>
+                                            <th>Q1 (Dynamic Calc)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sim-grid-body">
+                                        <!-- Rows injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'efficiency',
+                icon: 'fa-gears',
+                title: '4. Delivery & Automation',
+                subtitle: 'Smart View Admin & REST APIs',
+                content: `
+                    <div class="max-w-4xl mx-auto space-y-8 fade-in">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4 border-b pb-2">Efficiency of Work</h3>
+                            <p class="text-slate-600 leading-relaxed mb-4">
+                                Relying on the web interface to update a 10,000-member banking chart of accounts is highly inefficient. Senior architects use advanced tools.
+                            </p>
+                            
+                            <div class="space-y-6">
+                                <div class="flex gap-4">
+                                    <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-xl">
+                                        <i class="fa-regular fa-file-excel"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-slate-800">Smart View Admin Extension</h4>
+                                        <p class="text-sm text-slate-600 mt-1">Allows the architect to download the entire application dimensional hierarchy into a tabular Excel grid. Add, edit, assign properties (Dynamic Calc, Store, (+), (~)), and submit metadata back to the cloud instantaneously.</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-4">
+                                    <div class="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-xl">
+                                        <i class="fa-solid fa-code"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-slate-800">REST API Orchestration</h4>
+                                        <p class="text-sm text-slate-600 mt-1">For zero-touch lifecycle operations. Scripts send secure HTTP requests to the <code>/jobs</code> endpoint with JSON payloads (e.g., <code>IMPORT_METADATA</code>). This automates nightly hierarchy syncs from the core banking system to EPBCS.</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-4">
+                                    <div class="flex-shrink-0 w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 text-xl">
+                                        <i class="fa-solid fa-broom"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-slate-800">QA: Essbase Block Analysis</h4>
+                                        <p class="text-sm text-slate-600 mt-1">Before senior sign-off, check for empty zero-level blocks. Replace <code>SET CREATENONMISSINGBLK ON</code> with targeted <code>DATACOPY</code> commands to prevent memory explosion.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            }
+        ];
+
+        // --- Application Logic ---
+
+        let currentModuleId = 'intro';
+
+        function initApp() {
+            renderNavigation();
+            loadModule(currentModuleId);
+
+            // Mobile menu toggles
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                document.getElementById('mobile-menu').classList.remove('hidden');
+                document.getElementById('mobile-menu').classList.add('flex');
+            });
+            document.getElementById('mobile-close-btn').addEventListener('click', () => {
+                document.getElementById('mobile-menu').classList.add('hidden');
+                document.getElementById('mobile-menu').classList.remove('flex');
+            });
+        }
+
+        function renderNavigation() {
+            const navMenu = document.getElementById('nav-menu');
+            const mobileNavMenu = document.getElementById('mobile-nav-menu');
+            navMenu.innerHTML = '';
+            mobileNavMenu.innerHTML = '';
+
+            contentData.forEach(module => {
+                const isActive = module.id === currentModuleId;
+                const baseClasses = "flex items-center gap-3 px-6 py-3 cursor-pointer transition-colors duration-200 border-l-4";
+                const activeClasses = isActive ? "bg-slate-800 border-brand-500 text-white" : "border-transparent text-slate-400 hover:bg-slate-800 hover:text-white";
+                
+                const navItemHTML = `
+                    <div class="${baseClasses} ${activeClasses}" onclick="loadModule('${module.id}')">
+                        <i class="fa-solid ${module.icon} w-5 text-center"></i>
+                        <span class="text-sm font-medium">${module.title}</span>
+                    </div>
+                `;
+                
+                navMenu.innerHTML += navItemHTML;
+                mobileNavMenu.innerHTML += navItemHTML;
+            });
+        }
+
+        function loadModule(id) {
+            currentModuleId = id;
+            const module = contentData.find(m => m.id === id);
+            
+            document.getElementById('module-title').innerText = module.title;
+            document.getElementById('module-subtitle').innerText = module.subtitle;
+            document.getElementById('content-area').innerHTML = module.content;
+            
+            renderNavigation();
+
+            // Mobile specific logic
+            document.getElementById('mobile-menu').classList.add('hidden');
+            document.getElementById('mobile-menu').classList.remove('flex');
+
+            // If we loaded the interactive form module, initialize the grid
+            if(id === 'interactive-form') {
+                renderGrid(true); // Start valid
+            }
+        }
+
+        // --- Interactive Form Logic (Module 3) ---
+
+        const mockGridData = [
+            { id: 'A_Murabaha_Fin', alias: 'Murabaha Financing (Cost-Plus)', isCalculated: false, isIslamic: true },
+            { id: 'A_Ijarah_MBT', alias: 'Ijarah Muntahia Bittamleek', isCalculated: false, isIslamic: true },
+            { id: 'A_Sukuk_Invest', alias: 'Sukuk Investments', isCalculated: false, isIslamic: true },
+            { id: 'A_Isl_ECL_FAS30', alias: 'Impairment Allowance FAS 30', isCalculated: false, isIslamic: true },
+            { id: 'A_Isl_Assets', alias: 'Total Islamic Financing Assets', isCalculated: true, isIslamic: true }
+        ];
+
+        function validateIntersection() {
+            const entity = document.getElementById('sim-entity').value;
+            const product = document.getElementById('sim-product').value;
+            const banner = document.getElementById('validation-banner');
+            
+            // Logic: Form rows are explicitly Islamic accounts. 
+            // If Entity OR Product is Conventional, it violates the Valid Intersection ring-fence rules.
+            const isValid = (entity === 'islamic' && product === 'islamic');
+
+            if (!isValid) {
+                banner.classList.remove('hidden');
+                renderGrid(false); // Render locked grid
+            } else {
+                banner.classList.add('hidden');
+                renderGrid(true); // Render editable grid
+            }
+        }
+
+        function renderGrid(isValid) {
+            const tbody = document.getElementById('sim-grid-body');
+            if(!tbody) return;
+
+            tbody.innerHTML = '';
+            
+            mockGridData.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // Account Name : Alias Display
+                const th = document.createElement('td');
+                th.className = 'row-header';
+                th.innerHTML = `<span class="text-slate-500">${row.id} :</span> <span class="font-semibold text-slate-800">${row.alias}</span>`;
+                tr.appendChild(th);
+
+                // Generate Data Cells (Jan, Feb, Mar, Q1)
+                for(let i=1; i<=4; i++) {
+                    const td = document.createElement('td');
+                    if (i === 4 || row.isCalculated) {
+                        // Calculated/Read-only cells
+                        td.className = 'epbcs-cell-readonly font-semibold';
+                        td.innerText = isValid ? (i===4 ? 'Auto-Calc' : '0.00') : '#MISSING';
+                    } else {
+                        // Input cells
+                        if(isValid) {
+                            td.innerHTML = `<input type="text" class="epbcs-cell-input" placeholder="0.00">`;
+                        } else {
+                            td.className = 'epbcs-cell-invalid text-red-400 text-xs italic text-center';
+                            td.innerText = 'Intersection Invalid';
+                        }
+                    }
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initialize App on load
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
