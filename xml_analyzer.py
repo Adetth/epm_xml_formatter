@@ -79,15 +79,21 @@ class XMLAnalyzer:
         else:
             rows_node.insert(0, create_spacer(seg0))
 
+    # UPGRADED: Now parses POV and Pages safely
     def get_rowcols(self):
-        if self.root is None: return {"rows": [], "columns": []}
+        if self.root is None: return {"rows": [], "columns": [], "pov": [], "pages": []}
             
-        def parse_segments(xml_path):
+        def parse_container(xml_path):
             container_list = []
             parent_node = self.root.find(xml_path)
             if parent_node is None: return []
                 
-            for s_idx, segment in enumerate(parent_node.findall("segment")):
+            segments = parent_node.findall("segment")
+            if not segments:
+                if parent_node.findall("dimension"):
+                    segments = [parent_node]
+                    
+            for s_idx, segment in enumerate(segments):
                 dim_size = segment.get("size", segment.get("width", segment.get("height", "")))
                 combos = [{}] 
                 for dimension in segment.findall("dimension"):
@@ -121,9 +127,14 @@ class XMLAnalyzer:
                         c["_segment_idx"] = s_idx + 1 
                         container_list.append(c)
             return container_list
-        return {"rows": parse_segments(".//query/rows"), "columns": parse_segments(".//query/columns")}
 
-    # UPGRADED: Extracts txtColor dynamically
+        return {
+            "rows": parse_container(".//query/rows"), 
+            "columns": parse_container(".//query/columns"),
+            "pov": parse_container(".//query/pov"),
+            "pages": parse_container(".//query/pages")
+        }
+
     def get_format_map(self):
         format_map = {}
         if self.root is None: return format_map
