@@ -21,16 +21,14 @@
 
     <style>
         :root {
-            /* Upgraded Readability Theme: Solid Dark Slate / Zinc */
             --bg-deep: #18181b; 
-            --glass-bg: rgba(39, 39, 42, 0.85); /* Highly opaque for extreme text readability */
+            --glass-bg: rgba(39, 39, 42, 0.85); 
             --glass-border: rgba(255, 255, 255, 0.12);
             --glass-highlight: rgba(255, 255, 255, 0.15);
             
             --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
             
-            /* Softened Neons for Eye Comfort */
             --neon-cyan: #22d3ee; 
             --neon-purple: #a78bfa;
             --neon-green: #34d399;
@@ -52,7 +50,6 @@
 
         body { 
             font-family: 'Outfit', sans-serif; 
-            /* Clean, modern slate gradient */
             background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
             margin: 0; padding: 0; color: var(--text-main); 
             height: 100vh; overflow: hidden; display: flex;
@@ -177,7 +174,7 @@
         .grid-cell { cursor: cell; transition: all 0.1s ease; position: relative; }
         .grid-cell:hover { filter: brightness(1.3); box-shadow: inset 0 0 0 2px var(--neon-cyan); z-index: 10; }
 
-        /* NEW: POV and Page Meta Cards Grid */
+        /* POV and Page Meta Cards Grid */
         .meta-section { margin-bottom: 20px; background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); border-radius: 16px; padding: 15px 20px; }
         .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; width: 100%; margin-top: 10px; }
         .meta-card { background: rgba(39, 39, 42, 0.9); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); transition: 0.2s; border-left: 3px solid var(--glass-border); }
@@ -245,11 +242,9 @@
 <body>
 
 <script>
-    // CLOUD KILL SWITCH
     const CLOUD_CONFIG_URL = "https://epm-config-db-default-rtdb.firebaseio.com/APP_ACTIVATED.json"; 
     
     document.addEventListener("DOMContentLoaded", () => {
-        // Uncomment the fetch block below once you have added your real Firebase URL
         /*
         document.getElementById("app-wrapper").style.display = "none";
         fetch(CLOUD_CONFIG_URL, { cache: "no-store" })
@@ -338,10 +333,11 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div style="display: flex; gap: 20px; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--glass-border);">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="member" checked onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Member</label>
+                        
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="function" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Function</label>
+                        
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="dimension" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Dimension</label>
-                        
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="dim_member" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Dim : Member</label>
-                        
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500;"><input type="radio" name="view_mode" value="type" onchange="document.getElementById('refresh-grid-btn').click()" style="accent-color: var(--neon-cyan);"> Type</label>
                     </div>
                     <div style="display: flex; gap: 10px;">
@@ -860,14 +856,15 @@
             log(f"Error: {e}")
             window.outputEditor.setValue(f"Error parsing: {e}")
 
-    # --- UPGRADED: Added dim_member parsing ---
+    # --- UPGRADED: Completely removed arbitrary text slicing [:] ---
     def get_display_text(item_data, mode):
         real_dims = [k for k in item_data.keys() if not k.startswith("_")]
-        if mode == "dimension": return "\n".join([dim[:18] for dim in real_dims])
-        elif mode == "member": return "\n".join([str(item_data[dim])[:18] for dim in real_dims])
-        elif mode == "dim_member": return "\n".join([f"{dim[:12]}:\n{str(item_data[dim])[:12]}" for dim in real_dims])
-        elif mode == "type": return item_data.get("_type", "UNKNOWN")[:15]
-        return item_data.get("_display_name", "")[:15]
+        if mode == "dimension": return "\n".join([dim for dim in real_dims])
+        elif mode == "member": return "\n".join([str(item_data[dim]) for dim in real_dims])
+        elif mode == "dim_member": return "\n".join([f"{dim}:\n{str(item_data[dim])}" for dim in real_dims])
+        elif mode == "function": return "\n".join([str(item_data.get(f"_func_{dim}", item_data[dim])) for dim in real_dims])
+        elif mode == "type": return item_data.get("_type", "UNKNOWN")
+        return item_data.get("_display_name", "")
 
     def render_grid_visualizer(event):
         target = document.getElementById("grid-render-target")
@@ -885,7 +882,6 @@
         for r in document.getElementsByName("view_mode"):
             if r.checked: mode = r.value
 
-        # --- NEW: Beautiful CSS Grid Layout for POV and Pages ---
         meta_html = ""
         
         def build_meta_grid(items, title, icon, color):
@@ -896,10 +892,10 @@
                 for dim in real_dims:
                     mbr = str(p[dim])
                     disp = ""
-                    # Dynamically respect the radio button inside the mini cards
                     if mode == "dimension": disp = f"<span class='meta-card-value'>{dim}</span>"
                     elif mode == "member": disp = f"<span class='meta-card-value'>{mbr}</span>"
                     elif mode == "dim_member": disp = f"<span class='meta-card-dim'>{dim}</span><span class='meta-card-value'>{mbr}</span>"
+                    elif mode == "function": disp = f"<span class='meta-card-value'>{str(p.get(f'_func_{dim}', mbr))}</span>"
                     elif mode == "type": disp = f"<span class='meta-card-value'>{p.get('_type', 'UNKNOWN')}</span>"
                     
                     html += f"<div class='meta-card' style='border-left-color: {color};'>{disp}</div>"
