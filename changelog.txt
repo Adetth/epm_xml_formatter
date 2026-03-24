@@ -21,3 +21,4 @@ v1.0.0 - "Major UI Update"
 - THEME PORTABILITY: Added JSON Import/Export capabilities to save, share, and re-apply custom EPM color dictionary palettes.
 - RENDERER UPGRADE: The Python engine now extracts 'txtColor' and automatically calculates high-contrast text fallbacks for better visual accessibility.
 - BUG FIXES: Aggressively scoped Hex input CSS to prevent overriding standard text fields, and implemented WebKit hacks to hide unsightly scrollbars while retaining scroll functionality.
+v1.1.0 - Readability & Metadata Overhaul. Transitioned theme to high-contrast Solid Dark Slate/Zinc. Upgraded Point of View (POV) and Page dimensions to render as responsive CSS Grid cards. Added new "Dim : Member" and "Function" (e.g., IDescendants) visualization toggles to the Grid Visualizer. Removed 18-character truncation limits for long member names.
