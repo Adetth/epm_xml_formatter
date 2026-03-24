@@ -12,4 +12,4 @@ v0.16 - fixed issue with text formatting not working, and made changes to change
 v0.16 - added "Made by Adetth Raju" as a footer, and also changed the title of the application
 v0.17 - Integrated Web3Forms API to add a secure, floating "Give Feedback" modal with dynamic UI blurring.
 v0.18 - Added "Strip Legacy Colors" engine to resolve EPM Tuple-DVR override conflicts. Overhauled Color Injector UI with interactive location chips for surgical link removal.
-v2.1.0 - Readability & Metadata Overhaul. Transitioned theme to high-contrast Solid Dark Slate/Zinc. Upgraded Point of View (POV) and Page dimensions to render as responsive CSS Grid cards. Added new "Dim : Member" and "Function" (e.g., IDescendants) visualization toggles to the Grid Visualizer. Removed 18-character truncation limits for long member names.
+v1.1.0 - Readability & Metadata Overhaul. Transitioned theme to high-contrast Solid Dark Slate/Zinc. Upgraded Point of View (POV) and Page dimensions to render as responsive CSS Grid cards. Added new "Dim : Member" and "Function" (e.g., IDescendants) visualization toggles to the Grid Visualizer. Removed 18-character truncation limits for long member names.
