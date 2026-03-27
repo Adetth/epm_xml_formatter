@@ -234,6 +234,8 @@ class XMLAnalyzer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Data Format (Accent Line)")
             else:
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Header Format (Data)")
+                # THE MISSING LINK: Added the -1.0 Data rule for standard rows to bypass the dynamic expansion bug
+                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Data Format (Data)")
 
         return True
 
@@ -460,7 +462,6 @@ class XMLAnalyzer:
             return style_id
         return None
 
-    # --- NEW: Dynamic Position Calculation for Data Validation Rules ---
     def add_location_dvr(self, row_loc, col_loc, style_id, hex_color, rule_name="Auto Format Rule"):
         clean_hex = hex_color.replace("#", "")
         decimal_color = str(int(clean_hex, 16))
