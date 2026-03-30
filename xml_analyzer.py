@@ -166,6 +166,16 @@ class XMLAnalyzer:
 
         return format_map
 
+    # --- NEW: Forces unbroken sequential IDs for EPM Compiler ---
+    def _resequence_dvrs(self):
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is not None:
+            for idx, dvr in enumerate(dvr_bucket.findall("dataValidationRule")):
+                dvr.set("position", str(idx + 1))
+                cond = dvr.find("dataValidationCond")
+                if cond is not None:
+                    cond.set("position", "1")
+
     def strip_legacy_formatting(self):
         if self.root is None: return False
         self.save_state() 
@@ -187,6 +197,8 @@ class XMLAnalyzer:
                             cond.attrib.pop("styleId", None)
                             cond.attrib.pop("bgColor", None)
             for d in dvrs_to_remove: dvr_bucket.remove(d)
+            
+        self._resequence_dvrs()
         return True
 
     def apply_master_formatting(self):
@@ -233,9 +245,9 @@ class XMLAnalyzer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Header")
                 self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Data")
             else:
-                # STRIPPED THE -1.0 HACK! Only the Header (0.0) gets formatted now. Data cells stay clean.
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Header")
 
+        self._resequence_dvrs()
         return True
 
     def get_detailed_colors(self):
@@ -326,6 +338,8 @@ class XMLAnalyzer:
                         mbr = t.find(".//mbr")
                         if mbr is not None and mbr.get("name") == loc_data["mbr"]:
                             tuples_bucket.remove(t)
+        
+        self._resequence_dvrs()
 
     def remove_color_and_usages(self, color_id):
         if self.root is None: return
@@ -356,6 +370,8 @@ class XMLAnalyzer:
             for c in colors_bucket.findall("color"):
                 if c.get("id") == str(color_id):
                     colors_bucket.remove(c)
+                    
+        self._resequence_dvrs()
 
     def inject_colors(self, color_list):
         if self.root == None: return
@@ -461,12 +477,14 @@ class XMLAnalyzer:
             return style_id
         return None
 
+    # --- UPGRADED: Forces explicit spaces to prevent Self-Closing Tag crash ---
     def add_location_dvr(self, row_loc, col_loc, style_id, hex_color, rule_name="Auto Format Rule"):
         clean_hex = hex_color.replace("#", "")
         decimal_color = str(int(clean_hex, 16))
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is None: return
         
+        # Max pos calculation is kept as a safeguard, but resequence engine will handle the final output
         max_pos = 0
         for dvr in dvr_bucket.findall("dataValidationRule"):
             try:
@@ -478,8 +496,12 @@ class XMLAnalyzer:
         
         rule = ET.SubElement(dvr_bucket, "dataValidationRule", position=new_pos, name=rule_name, description="", enabled="true", customStyle="true", rowLocation=str(float(row_loc)), colLocation=str(float(col_loc)))
         cond = ET.SubElement(rule, "dataValidationCond", toolTip="", groupOpenNestingLevel="0", operator="0", displayMessageInDVPane="false", honorPmRules="false", negate="false", groupCloseNestingLevel="0", position="1", styleId=str(style_id), type="8", bgColor=decimal_color, Valid="true", logicalOperator="0")
-        ET.SubElement(cond, "compareValue", type="6", value="")
-        ET.SubElement(cond, "compareToValue", type="0", value="")
+        
+        comp_val = ET.SubElement(cond, "compareValue", type="6", value="")
+        comp_val.text = " " # Force explicit closing tag
+        
+        comp_to_val = ET.SubElement(cond, "compareToValue", type="0", value="")
+        comp_to_val.text = " " # Force explicit closing tag
 
     def inject_cell_color(self, r_loc, c_loc, hex_color):
         if self.root is None: return False
@@ -531,6 +553,7 @@ class XMLAnalyzer:
         if not rule_found:
             self.add_location_dvr(row_loc=r_loc, col_loc=c_loc, style_id=style_id, hex_color=clean_hex, rule_name=f"Interactive Cell [{r_loc}, {c_loc}]")
             
+        self._resequence_dvrs()
         return True
 
     @staticmethod
