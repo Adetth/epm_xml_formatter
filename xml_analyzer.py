@@ -166,7 +166,6 @@ class XMLAnalyzer:
 
         return format_map
 
-    # --- NEW: Forces unbroken sequential IDs for EPM Compiler ---
     def _resequence_dvrs(self):
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is not None:
@@ -175,6 +174,28 @@ class XMLAnalyzer:
                 cond = dvr.find("dataValidationCond")
                 if cond is not None:
                     cond.set("position", "1")
+
+    def _ensure_dvr_options(self):
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is None: return
+        
+        opts = dvr_bucket.find("dataValidationRulesOptions")
+        if opts is None:
+            opts = ET.SubElement(dvr_bucket, "dataValidationRulesOptions")
+            
+        flags = {
+            "RunValidationsAsLoggedInUser": "true",
+            "ValidateOnlyForPagesWithBlocks": "false", 
+            "ValidateOnlyForUsersWithAccessToForm": "false",
+            "ReplaceUserVarWithPuMember": "false",
+            "LoopOverEveryPossiblePuUserVarValue": "false"
+        }
+        
+        for tag, val in flags.items():
+            node = opts.find(tag)
+            if node is None:
+                node = ET.SubElement(opts, tag)
+            node.text = val
 
     def strip_legacy_formatting(self):
         if self.root is None: return False
@@ -199,9 +220,11 @@ class XMLAnalyzer:
             for d in dvrs_to_remove: dvr_bucket.remove(d)
             
         self._resequence_dvrs()
+        self._ensure_dvr_options()
         return True
 
-    def apply_master_formatting(self):
+    # --- UPGRADED: Dynamic Default Configuration Loading ---
+    def apply_master_formatting(self, theme_config=None):
         if self.root is None: return False
         self.save_state() 
         
@@ -215,21 +238,48 @@ class XMLAnalyzer:
         self.setup_formatting_foundation()
         self.ensure_txt_formats()
         
-        dark_blue_id = self.add_new_color("11", "37", "49", ignore_history=True)
-        light_blue_id = self.add_new_color("240", "248", "255", ignore_history=True)
-        white_id = self.add_new_color("255", "255", "255", ignore_history=True)
-        orange_id = self.add_new_color("255", "140", "0", ignore_history=True) 
+        # Load user defaults or fallback to standard EPM palette
+        if theme_config is None:
+            theme_config = {
+                "col_header": "0B2531",
+                "data_row": "F0F8FF",
+                "formula_row": "0B2531",
+                "accent_row": "FF8C00"
+            }
+            
+        def hex_to_r_g_b(h):
+            h = h.lstrip('#')
+            if len(h) != 6: return "255", "255", "255" # Safe fallback
+            return str(int(h[0:2], 16)), str(int(h[2:4], 16)), str(int(h[4:6], 16))
+
+        # Dynamically inject the user's chosen hex values into the EPM dictionary
+        c_r, c_g, c_b = hex_to_r_g_b(theme_config["col_header"])
+        col_id = self.add_new_color(c_r, c_g, c_b, ignore_history=True)
+
+        d_r, d_g, d_b = hex_to_r_g_b(theme_config["data_row"])
+        data_id = self.add_new_color(d_r, d_g, d_b, ignore_history=True)
+
+        f_r, f_g, f_b = hex_to_r_g_b(theme_config["formula_row"])
+        form_id = self.add_new_color(f_r, f_g, f_b, ignore_history=True)
+
+        a_r, a_g, a_b = hex_to_r_g_b(theme_config["accent_row"])
+        acc_id = self.add_new_color(a_r, a_g, a_b, ignore_history=True)
+
+        white_id = self.add_new_color("255", "255", "255", ignore_history=True) 
         
         border_ids = self.inject_standard_borders()
-        col_style_id = self.add_advanced_cell_style(bg_color_id=dark_blue_id, txt_color_id=white_id, is_bold=True, border_ids=border_ids)
-        row_style_id = self.add_advanced_cell_style(bg_color_id=light_blue_id)
-        orange_style_id = self.add_advanced_cell_style(bg_color_id=orange_id) 
+        
+        col_style_id = self.add_advanced_cell_style(bg_color_id=col_id, txt_color_id=white_id, is_bold=True, border_ids=border_ids)
+        form_style_id = self.add_advanced_cell_style(bg_color_id=form_id, txt_color_id=white_id, is_bold=True)
+        data_style_id = self.add_advanced_cell_style(bg_color_id=data_id)
+        acc_style_id = self.add_advanced_cell_style(bg_color_id=acc_id)
 
         max_col_seg = max((c.get("_segment_idx", 1) for c in grid_data["columns"]), default=0)
         max_row_seg = max((r.get("_segment_idx", 1) for r in grid_data["rows"]), default=0)
 
+        # Layout Injection using the Dynamic Variables
         for c_idx in range(max_col_seg):
-            self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color="0B2531", rule_name=f"Column {c_idx+1} Header")
+            self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color=theme_config["col_header"], rule_name=f"Column {c_idx+1} Header")
 
         for r_idx in range(1, max_row_seg + 1):
             row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
@@ -239,15 +289,16 @@ class XMLAnalyzer:
             is_spacer = (row_info.get("_size") == "-4")
             
             if r_idx == 1 and is_formula and not is_spacer:
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=col_style_id, hex_color="0B2531", rule_name=f"Row {r_idx} Header")
-                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=col_style_id, hex_color="0B2531", rule_name=f"Row {r_idx} Data")
+                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=form_style_id, hex_color=theme_config["formula_row"], rule_name=f"Row {r_idx} Header")
+                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=form_style_id, hex_color=theme_config["formula_row"], rule_name=f"Row {r_idx} Data")
             elif is_formula and is_spacer:
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Header")
-                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=orange_style_id, hex_color="FF8C00", rule_name=f"Row {r_idx} Data")
+                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=acc_style_id, hex_color=theme_config["accent_row"], rule_name=f"Row {r_idx} Header")
+                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=acc_style_id, hex_color=theme_config["accent_row"], rule_name=f"Row {r_idx} Data")
             else:
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=row_style_id, hex_color="F0F8FF", rule_name=f"Row {r_idx} Header")
+                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=data_style_id, hex_color=theme_config["data_row"], rule_name=f"Row {r_idx} Header")
 
         self._resequence_dvrs()
+        self._ensure_dvr_options()
         return True
 
     def get_detailed_colors(self):
@@ -477,14 +528,12 @@ class XMLAnalyzer:
             return style_id
         return None
 
-    # --- UPGRADED: Forces explicit spaces to prevent Self-Closing Tag crash ---
     def add_location_dvr(self, row_loc, col_loc, style_id, hex_color, rule_name="Auto Format Rule"):
         clean_hex = hex_color.replace("#", "")
         decimal_color = str(int(clean_hex, 16))
         dvr_bucket = self.root.find(".//dataValidationRules")
         if dvr_bucket is None: return
         
-        # Max pos calculation is kept as a safeguard, but resequence engine will handle the final output
         max_pos = 0
         for dvr in dvr_bucket.findall("dataValidationRule"):
             try:
@@ -498,10 +547,10 @@ class XMLAnalyzer:
         cond = ET.SubElement(rule, "dataValidationCond", toolTip="", groupOpenNestingLevel="0", operator="0", displayMessageInDVPane="false", honorPmRules="false", negate="false", groupCloseNestingLevel="0", position="1", styleId=str(style_id), type="8", bgColor=decimal_color, Valid="true", logicalOperator="0")
         
         comp_val = ET.SubElement(cond, "compareValue", type="6", value="")
-        comp_val.text = " " # Force explicit closing tag
+        comp_val.text = " " 
         
         comp_to_val = ET.SubElement(cond, "compareToValue", type="0", value="")
-        comp_to_val.text = " " # Force explicit closing tag
+        comp_to_val.text = " " 
 
     def inject_cell_color(self, r_loc, c_loc, hex_color):
         if self.root is None: return False
@@ -554,6 +603,7 @@ class XMLAnalyzer:
             self.add_location_dvr(row_loc=r_loc, col_loc=c_loc, style_id=style_id, hex_color=clean_hex, rule_name=f"Interactive Cell [{r_loc}, {c_loc}]")
             
         self._resequence_dvrs()
+        self._ensure_dvr_options()
         return True
 
     @staticmethod
