@@ -178,9 +178,9 @@
         .meta-card-value { font-size: 13px; color: #fff; font-family: 'Outfit', sans-serif; font-weight: 500; word-wrap: break-word; line-height: 1.4; }
         .meta-card-dim { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 2px; }
 
-        .hex-input { padding: 10px 14px; background: rgba(0,0,0,0.4); color: var(--neon-cyan); border: 1px solid var(--glass-border); border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 14px; transition: 0.3s; width: 100px; text-transform: uppercase; }
+        .hex-input { padding: 10px 12px; background: rgba(0,0,0,0.4); color: var(--neon-cyan); border: 1px solid var(--glass-border); border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 13px; transition: 0.3s; width: 70px; text-transform: uppercase; }
         .hex-input:focus { outline: none; border-color: var(--neon-purple); box-shadow: 0 0 10px rgba(167, 139, 250, 0.3); }
-        .color-preview { width: 32px; height: 32px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.3); flex-shrink: 0; }
+        .color-preview { width: 26px; height: 26px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.3); flex-shrink: 0; }
 
         .CodeMirror { flex-grow: 1; border-radius: 16px; border: 1px solid var(--glass-border); font-family: 'Fira Code', monospace; font-size: 13px; background: rgba(0,0,0,0.4) !important; margin-bottom: 20px; }
         .CodeMirror-gutters { background: rgba(24,24,27,0.8) !important; border-right: 1px solid var(--glass-border) !important; }
@@ -235,19 +235,6 @@
     const CLOUD_CONFIG_URL = "https://epm-config-db-default-rtdb.firebaseio.com/APP_ACTIVATED.json"; 
     
     document.addEventListener("DOMContentLoaded", () => {
-        /*
-        document.getElementById("app-wrapper").style.display = "none";
-        fetch(CLOUD_CONFIG_URL, { cache: "no-store" })
-            .then(r => r.json())
-            .then(isActivated => {
-                if (isActivated === true || isActivated === "true") {
-                    document.getElementById("app-wrapper").style.display = "flex";
-                } else {
-                    document.body.innerHTML += `<div style="display:flex; height:100vh; width:100vw; align-items:center; justify-content:center; flex-direction:column; z-index:9999; color:#fff; text-align:center; font-family: 'Outfit', sans-serif;"><i class="ph-fill ph-warning-circle" style="font-size: 72px; color: var(--neon-red); margin-bottom:20px; filter: drop-shadow(0 0 20px rgba(251, 113, 133, 0.5));"></i><h1 style="font-size: 36px; margin:0;">System Offline</h1><p style="color:var(--text-muted); margin-top:10px;">The Oracle EPM Tool is under maintenance.</p></div>`;
-                }
-            }).catch(() => { document.getElementById("app-wrapper").style.display = "flex"; });
-        */
-        
         // Auto-load previously saved settings
         loadSettingsFromStorage();
     });
@@ -387,38 +374,111 @@
             <div id="tab-settings" class="tab-content" style="display: none; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0; font-size: 24px; font-weight: 600;"><i class="ph-fill ph-gear" style="color: var(--neon-cyan); margin-right: 10px;"></i>Global Preferences</h2>
-                    <button class="btn btn-glow-cyan" id="save-settings-btn" onclick="saveSettingsToStorage(this)"><i class="ph-bold ph-floppy-disk"></i> Save Defaults</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-glow-red" onclick="revertToDefaults()"><i class="ph-bold ph-arrow-counter-clockwise"></i> Revert to Defaults</button>
+                        <button class="btn btn-glow-cyan" id="save-settings-btn" onclick="saveSettingsToStorage(this)"><i class="ph-bold ph-floppy-disk"></i> Save Preferences</button>
+                    </div>
                 </div>
                 
                 <div class="meta-section">
                     <div style="color: var(--neon-purple); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;"><i class="ph-bold ph-paint-brush-broad" style="margin-right: 6px;"></i>Master Formatting Theme Engine</div>
                     
                     <table class="data-table">
-                        <thead><tr><th style="width: 250px;">Target Layout Area</th><th style="width: 80px;">Preview</th><th>Configured Hex Code</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th style="width: 220px;">Target Layout Area</th>
+                                <th style="width: 140px;">Bg Color</th>
+                                <th style="width: 140px;">Text Color</th>
+                                <th style="text-align: center;">Bold Text</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             <tr>
                                 <td style="font-weight: 500; color: #fff;"><i class="ph-bold ph-columns" style="margin-right: 8px; color: var(--text-muted);"></i>Column Headers</td>
-                                <td><div id="prev_setting_col" class="color-preview" style="background-color:#0B2531;"></div></td>
-                                <td><div class="flex-row"><span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span><input type="text" class="hex-input" id="setting_col_header" value="0B2531" oninput="document.getElementById('prev_setting_col').style.backgroundColor = '#' + this.value"></div></td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_col" class="color-preview" style="background-color:#0B2531;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_col_header" value="0B2531" oninput="document.getElementById('prev_setting_col').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_col_txt" class="color-preview" style="background-color:#FFFFFF;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_col_header_txt" value="FFFFFF" oninput="document.getElementById('prev_setting_col_txt').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" id="setting_col_header_bold" class="toggle-checkbox" checked>
+                                </td>
                             </tr>
+                            
                             <tr>
                                 <td style="font-weight: 500; color: #fff;"><i class="ph-bold ph-rows" style="margin-right: 8px; color: var(--text-muted);"></i>Standard Data Rows</td>
-                                <td><div id="prev_setting_data" class="color-preview" style="background-color:#F0F8FF;"></div></td>
-                                <td><div class="flex-row"><span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span><input type="text" class="hex-input" id="setting_data_row" value="F0F8FF" oninput="document.getElementById('prev_setting_data').style.backgroundColor = '#' + this.value"></div></td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_data" class="color-preview" style="background-color:#F0F8FF;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_data_row" value="F0F8FF" oninput="document.getElementById('prev_setting_data').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_data_txt" class="color-preview" style="background-color:#111111;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_data_row_txt" value="111111" oninput="document.getElementById('prev_setting_data_txt').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" id="setting_data_row_bold" class="toggle-checkbox">
+                                </td>
                             </tr>
+
                             <tr>
                                 <td style="font-weight: 500; color: #fff;"><i class="ph-bold ph-function" style="margin-right: 8px; color: var(--text-muted);"></i>Formula / Calc Rows</td>
-                                <td><div id="prev_setting_form" class="color-preview" style="background-color:#0B2531;"></div></td>
-                                <td><div class="flex-row"><span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span><input type="text" class="hex-input" id="setting_formula_row" value="0B2531" oninput="document.getElementById('prev_setting_form').style.backgroundColor = '#' + this.value"></div></td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_form" class="color-preview" style="background-color:#0B2531;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_formula_row" value="0B2531" oninput="document.getElementById('prev_setting_form').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_form_txt" class="color-preview" style="background-color:#FFFFFF;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_formula_row_txt" value="FFFFFF" oninput="document.getElementById('prev_setting_form_txt').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" id="setting_formula_row_bold" class="toggle-checkbox" checked>
+                                </td>
                             </tr>
+
                             <tr>
                                 <td style="font-weight: 500; color: #fff;"><i class="ph-bold ph-arrows-out-line-vertical" style="margin-right: 8px; color: var(--text-muted);"></i>Accent / Spacer Rows</td>
-                                <td><div id="prev_setting_acc" class="color-preview" style="background-color:#FF8C00;"></div></td>
-                                <td><div class="flex-row"><span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span><input type="text" class="hex-input" id="setting_accent_row" value="FF8C00" oninput="document.getElementById('prev_setting_acc').style.backgroundColor = '#' + this.value"></div></td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_acc" class="color-preview" style="background-color:#FF8C00;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_accent_row" value="FF8C00" oninput="document.getElementById('prev_setting_acc').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_acc_txt" class="color-preview" style="background-color:#FFFFFF;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_accent_row_txt" value="FFFFFF" oninput="document.getElementById('prev_setting_acc_txt').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" id="setting_accent_row_bold" class="toggle-checkbox" checked>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
-                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 15px;"><i class="ph-fill ph-info"></i> These colors will be securely applied whenever you execute "Format Active File" or trigger the Batch Processor.</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 15px;"><i class="ph-fill ph-info"></i> These colors and font weights will be securely applied whenever you execute "Format Active File" or trigger the Batch Processor.</p>
                 </div>
             </div>
 
@@ -547,46 +607,99 @@
         if(window.rawEditor) window.rawEditor.setValue('');
     }
 
-    // --- Settings Memory Engine ---
+    // --- Upgraded Settings Memory Engine ---
     function saveSettingsToStorage(btn) {
         const config = {
             col_header: document.getElementById('setting_col_header').value.replace('#',''),
+            col_header_txt: document.getElementById('setting_col_header_txt').value.replace('#',''),
+            col_header_bold: document.getElementById('setting_col_header_bold').checked,
+            
             data_row: document.getElementById('setting_data_row').value.replace('#',''),
+            data_row_txt: document.getElementById('setting_data_row_txt').value.replace('#',''),
+            data_row_bold: document.getElementById('setting_data_row_bold').checked,
+            
             formula_row: document.getElementById('setting_formula_row').value.replace('#',''),
-            accent_row: document.getElementById('setting_accent_row').value.replace('#','')
+            formula_row_txt: document.getElementById('setting_formula_row_txt').value.replace('#',''),
+            formula_row_bold: document.getElementById('setting_formula_row_bold').checked,
+            
+            accent_row: document.getElementById('setting_accent_row').value.replace('#',''),
+            accent_row_txt: document.getElementById('setting_accent_row_txt').value.replace('#',''),
+            accent_row_bold: document.getElementById('setting_accent_row_bold').checked
         };
         localStorage.setItem('epm_theme_settings', JSON.stringify(config));
         
-        let originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="ph-bold ph-check"></i> Saved!';
-        btn.classList.add('btn-glow-green');
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.classList.remove('btn-glow-green');
-        }, 2000);
+        if (btn) {
+            let originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="ph-bold ph-check"></i> Saved!';
+            btn.classList.add('btn-glow-green');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-glow-green');
+            }, 2000);
+        }
     }
 
     function loadSettingsFromStorage() {
         const saved = localStorage.getItem('epm_theme_settings');
         if (saved) {
             const config = JSON.parse(saved);
-            if (config.col_header) {
-                document.getElementById('setting_col_header').value = config.col_header;
-                document.getElementById('prev_setting_col').style.backgroundColor = '#' + config.col_header;
-            }
-            if (config.data_row) {
-                document.getElementById('setting_data_row').value = config.data_row;
-                document.getElementById('prev_setting_data').style.backgroundColor = '#' + config.data_row;
-            }
-            if (config.formula_row) {
-                document.getElementById('setting_formula_row').value = config.formula_row;
-                document.getElementById('prev_setting_form').style.backgroundColor = '#' + config.formula_row;
-            }
-            if (config.accent_row) {
-                document.getElementById('setting_accent_row').value = config.accent_row;
-                document.getElementById('prev_setting_acc').style.backgroundColor = '#' + config.accent_row;
+            
+            const applyVal = (id, val, isColor) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') {
+                    el.checked = val;
+                } else {
+                    el.value = val;
+                    if (isColor) {
+                        const previewId = id.replace('setting_', 'prev_setting_');
+                        const prev = document.getElementById(previewId);
+                        if (prev) prev.style.backgroundColor = '#' + val;
+                    }
+                }
+            };
+            
+            applyVal('setting_col_header', config.col_header || '0B2531', true);
+            applyVal('setting_col_header_txt', config.col_header_txt || 'FFFFFF', true);
+            applyVal('setting_col_header_bold', config.col_header_bold !== undefined ? config.col_header_bold : true, false);
+            
+            applyVal('setting_data_row', config.data_row || 'F0F8FF', true);
+            applyVal('setting_data_row_txt', config.data_row_txt || '111111', true);
+            applyVal('setting_data_row_bold', config.data_row_bold !== undefined ? config.data_row_bold : false, false);
+            
+            applyVal('setting_formula_row', config.formula_row || '0B2531', true);
+            applyVal('setting_formula_row_txt', config.formula_row_txt || 'FFFFFF', true);
+            applyVal('setting_formula_row_bold', config.formula_row_bold !== undefined ? config.formula_row_bold : true, false);
+            
+            applyVal('setting_accent_row', config.accent_row || 'FF8C00', true);
+            applyVal('setting_accent_row_txt', config.accent_row_txt || 'FFFFFF', true);
+            applyVal('setting_accent_row_bold', config.accent_row_bold !== undefined ? config.accent_row_bold : true, false);
+        }
+    }
+
+    function revertToDefaults() {
+        if (!confirm("Reset all Global Preferences to their original defaults?")) return;
+        localStorage.removeItem('epm_theme_settings');
+        
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) {
+                if(el.type === 'checkbox') el.checked = val;
+                else {
+                    el.value = val;
+                    const prev = document.getElementById(id.replace('setting_', 'prev_setting_'));
+                    if(prev) prev.style.backgroundColor = '#' + val;
+                }
             }
         }
+        
+        setVal('setting_col_header', '0B2531'); setVal('setting_col_header_txt', 'FFFFFF'); setVal('setting_col_header_bold', true);
+        setVal('setting_data_row', 'F0F8FF'); setVal('setting_data_row_txt', '111111'); setVal('setting_data_row_bold', false);
+        setVal('setting_formula_row', '0B2531'); setVal('setting_formula_row_txt', 'FFFFFF'); setVal('setting_formula_row_bold', true);
+        setVal('setting_accent_row', 'FF8C00'); setVal('setting_accent_row_txt', 'FFFFFF'); setVal('setting_accent_row_bold', true);
+        
+        saveSettingsToStorage(null);
+        alert("Settings have been reverted to defaults.");
     }
 
     const pickerPanel = document.getElementById('custom-color-picker');
@@ -729,13 +842,24 @@
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
-    # --- Fetch UI Config Helper ---
+    # --- UPGRADED: Expanded config fetcher ---
     def get_theme_config():
         return {
             "col_header": document.getElementById("setting_col_header").value.replace("#", "").strip().upper(),
+            "col_header_txt": document.getElementById("setting_col_header_txt").value.replace("#", "").strip().upper(),
+            "col_header_bold": document.getElementById("setting_col_header_bold").checked,
+            
             "data_row": document.getElementById("setting_data_row").value.replace("#", "").strip().upper(),
+            "data_row_txt": document.getElementById("setting_data_row_txt").value.replace("#", "").strip().upper(),
+            "data_row_bold": document.getElementById("setting_data_row_bold").checked,
+            
             "formula_row": document.getElementById("setting_formula_row").value.replace("#", "").strip().upper(),
-            "accent_row": document.getElementById("setting_accent_row").value.replace("#", "").strip().upper()
+            "formula_row_txt": document.getElementById("setting_formula_row_txt").value.replace("#", "").strip().upper(),
+            "formula_row_bold": document.getElementById("setting_formula_row_bold").checked,
+            
+            "accent_row": document.getElementById("setting_accent_row").value.replace("#", "").strip().upper(),
+            "accent_row_txt": document.getElementById("setting_accent_row_txt").value.replace("#", "").strip().upper(),
+            "accent_row_bold": document.getElementById("setting_accent_row_bold").checked
         }
 
     def save_session_to_localstorage():
@@ -886,7 +1010,6 @@
             for fname in selected_files:
                 mod = file_registry[fname]
                 try:
-                    # Pass the dynamic settings!
                     mod.apply_master_formatting(get_theme_config())
                     xml_str = mod.get_final_xml_string()
                     zf.writestr(f"Formatted_Forms/{fname}", xml_str)
@@ -905,7 +1028,6 @@
         
         log(f"Executing layout rules on {active_filename}...")
         try:
-            # Pass the dynamic settings!
             modifier.apply_master_formatting(get_theme_config())
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
@@ -923,8 +1045,6 @@
         try:
             temp_mod = XMLAnalyzer()
             temp_mod.load_from_string(raw_xml)
-            
-            # Pass the dynamic settings!
             temp_mod.apply_master_formatting(get_theme_config())
             
             window.outputEditor.setValue(temp_mod.get_final_xml_string())
