@@ -175,28 +175,6 @@ class XMLAnalyzer:
                 if cond is not None:
                     cond.set("position", "1")
 
-    def _ensure_dvr_options(self):
-        dvr_bucket = self.root.find(".//dataValidationRules")
-        if dvr_bucket is None: return
-        
-        opts = dvr_bucket.find("dataValidationRulesOptions")
-        if opts is None:
-            opts = ET.SubElement(dvr_bucket, "dataValidationRulesOptions")
-            
-        flags = {
-            "RunValidationsAsLoggedInUser": "true",
-            "ValidateOnlyForPagesWithBlocks": "false", 
-            "ValidateOnlyForUsersWithAccessToForm": "false",
-            "ReplaceUserVarWithPuMember": "false",
-            "LoopOverEveryPossiblePuUserVarValue": "false"
-        }
-        
-        for tag, val in flags.items():
-            node = opts.find(tag)
-            if node is None:
-                node = ET.SubElement(opts, tag)
-            node.text = val
-
     def strip_legacy_formatting(self):
         if self.root is None: return False
         self.save_state() 
@@ -220,10 +198,8 @@ class XMLAnalyzer:
             for d in dvrs_to_remove: dvr_bucket.remove(d)
             
         self._resequence_dvrs()
-        self._ensure_dvr_options()
         return True
 
-    # --- UPGRADED: Dynamic Default Configuration Loading ---
     def apply_master_formatting(self, theme_config=None):
         if self.root is None: return False
         self.save_state() 
@@ -241,43 +217,39 @@ class XMLAnalyzer:
         # Load user defaults or fallback to standard EPM palette
         if theme_config is None:
             theme_config = {
-                "col_header": "0B2531",
-                "data_row": "F0F8FF",
-                "formula_row": "0B2531",
-                "accent_row": "FF8C00"
+                "col_header": "0B2531", "col_header_txt": "FFFFFF", "col_header_bold": True,
+                "data_row": "F0F8FF", "data_row_txt": "111111", "data_row_bold": False,
+                "formula_row": "0B2531", "formula_row_txt": "FFFFFF", "formula_row_bold": True,
+                "accent_row": "FF8C00", "accent_row_txt": "FFFFFF", "accent_row_bold": True
             }
             
         def hex_to_r_g_b(h):
             h = h.lstrip('#')
-            if len(h) != 6: return "255", "255", "255" # Safe fallback
+            if len(h) != 6: return "255", "255", "255" 
             return str(int(h[0:2], 16)), str(int(h[2:4], 16)), str(int(h[4:6], 16))
 
-        # Dynamically inject the user's chosen hex values into the EPM dictionary
-        c_r, c_g, c_b = hex_to_r_g_b(theme_config["col_header"])
-        col_id = self.add_new_color(c_r, c_g, c_b, ignore_history=True)
-
-        d_r, d_g, d_b = hex_to_r_g_b(theme_config["data_row"])
-        data_id = self.add_new_color(d_r, d_g, d_b, ignore_history=True)
-
-        f_r, f_g, f_b = hex_to_r_g_b(theme_config["formula_row"])
-        form_id = self.add_new_color(f_r, f_g, f_b, ignore_history=True)
-
-        a_r, a_g, a_b = hex_to_r_g_b(theme_config["accent_row"])
-        acc_id = self.add_new_color(a_r, a_g, a_b, ignore_history=True)
-
-        white_id = self.add_new_color("255", "255", "255", ignore_history=True) 
+        col_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("col_header", "0B2531")), ignore_history=True)
+        col_txt_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("col_header_txt", "FFFFFF")), ignore_history=True)
         
+        data_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("data_row", "F0F8FF")), ignore_history=True)
+        data_txt_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("data_row_txt", "111111")), ignore_history=True)
+
+        form_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("formula_row", "0B2531")), ignore_history=True)
+        form_txt_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("formula_row_txt", "FFFFFF")), ignore_history=True)
+
+        acc_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("accent_row", "FF8C00")), ignore_history=True)
+        acc_txt_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("accent_row_txt", "FFFFFF")), ignore_history=True)
+
         border_ids = self.inject_standard_borders()
         
-        col_style_id = self.add_advanced_cell_style(bg_color_id=col_id, txt_color_id=white_id, is_bold=True, border_ids=border_ids)
-        form_style_id = self.add_advanced_cell_style(bg_color_id=form_id, txt_color_id=white_id, is_bold=True)
-        data_style_id = self.add_advanced_cell_style(bg_color_id=data_id)
-        acc_style_id = self.add_advanced_cell_style(bg_color_id=acc_id)
+        col_style_id = self.add_advanced_cell_style(bg_color_id=col_id, txt_color_id=col_txt_id, is_bold=theme_config.get("col_header_bold", True), border_ids=border_ids)
+        form_style_id = self.add_advanced_cell_style(bg_color_id=form_id, txt_color_id=form_txt_id, is_bold=theme_config.get("formula_row_bold", True))
+        data_style_id = self.add_advanced_cell_style(bg_color_id=data_id, txt_color_id=data_txt_id, is_bold=theme_config.get("data_row_bold", False))
+        acc_style_id = self.add_advanced_cell_style(bg_color_id=acc_id, txt_color_id=acc_txt_id, is_bold=theme_config.get("accent_row_bold", True))
 
         max_col_seg = max((c.get("_segment_idx", 1) for c in grid_data["columns"]), default=0)
         max_row_seg = max((r.get("_segment_idx", 1) for r in grid_data["rows"]), default=0)
 
-        # Layout Injection using the Dynamic Variables
         for c_idx in range(max_col_seg):
             self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color=theme_config["col_header"], rule_name=f"Column {c_idx+1} Header")
 
@@ -298,7 +270,6 @@ class XMLAnalyzer:
                 self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=data_style_id, hex_color=theme_config["data_row"], rule_name=f"Row {r_idx} Header")
 
         self._resequence_dvrs()
-        self._ensure_dvr_options()
         return True
 
     def get_detailed_colors(self):
@@ -603,7 +574,6 @@ class XMLAnalyzer:
             self.add_location_dvr(row_loc=r_loc, col_loc=c_loc, style_id=style_id, hex_color=clean_hex, rule_name=f"Interactive Cell [{r_loc}, {c_loc}]")
             
         self._resequence_dvrs()
-        self._ensure_dvr_options()
         return True
 
     @staticmethod
