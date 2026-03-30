@@ -23,3 +23,4 @@ v1.0.0 - "Major UI Update"
 - BUG FIXES: Aggressively scoped Hex input CSS to prevent overriding standard text fields, and implemented WebKit hacks to hide unsightly scrollbars while retaining scroll functionality.
 v1.1.0 - Readability & Metadata Overhaul. Transitioned theme to high-contrast Solid Dark Slate/Zinc. Upgraded Point of View (POV) and Page dimensions to render as responsive CSS Grid cards. Added new "Dim : Member" and "Function" (e.g., IDescendants) visualization toggles to the Grid Visualizer. Removed 18-character truncation limits for long member names.
 v1.1.1 - Bugfix - Row metadata not getting applied properly (tried to fix)
+v1.1.2 - Settings button to set default color
