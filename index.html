@@ -178,9 +178,9 @@
         .meta-card-value { font-size: 13px; color: #fff; font-family: 'Outfit', sans-serif; font-weight: 500; word-wrap: break-word; line-height: 1.4; }
         .meta-card-dim { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 2px; }
 
-        .hex-input { padding: 10px 12px; background: rgba(0,0,0,0.4); color: var(--neon-cyan); border: 1px solid var(--glass-border); border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 13px; transition: 0.3s; width: 70px; text-transform: uppercase; }
+        .hex-input { padding: 10px 14px; background: rgba(0,0,0,0.4); color: var(--neon-cyan); border: 1px solid var(--glass-border); border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 14px; transition: 0.3s; width: 100px; text-transform: uppercase; }
         .hex-input:focus { outline: none; border-color: var(--neon-purple); box-shadow: 0 0 10px rgba(167, 139, 250, 0.3); }
-        .color-preview { width: 26px; height: 26px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.3); flex-shrink: 0; }
+        .color-preview { width: 32px; height: 32px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.3); flex-shrink: 0; }
 
         .CodeMirror { flex-grow: 1; border-radius: 16px; border: 1px solid var(--glass-border); font-family: 'Fira Code', monospace; font-size: 13px; background: rgba(0,0,0,0.4) !important; margin-bottom: 20px; }
         .CodeMirror-gutters { background: rgba(24,24,27,0.8) !important; border-right: 1px solid var(--glass-border) !important; }
@@ -476,6 +476,20 @@
                                     <input type="checkbox" id="setting_accent_row_bold" class="toggle-checkbox" checked>
                                 </td>
                             </tr>
+
+                            <tr>
+                                <td style="font-weight: 500; color: #fff;"><i class="ph-bold ph-squares-four" style="margin-right: 8px; color: var(--text-muted);"></i>Grid Borders</td>
+                                <td>
+                                    <div class="flex-row">
+                                        <div id="prev_setting_border" class="color-preview" style="background-color:#FFFFFF;"></div>
+                                        <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                        <input type="text" class="hex-input" id="setting_border_color" value="FFFFFF" oninput="document.getElementById('prev_setting_border').style.backgroundColor = '#' + this.value">
+                                    </div>
+                                </td>
+                                <td colspan="2" style="text-align: center; color: var(--text-muted); font-size: 12px; font-style: italic;">
+                                    Global border color override
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 15px;"><i class="ph-fill ph-info"></i> These colors and font weights will be securely applied whenever you execute "Format Active File" or trigger the Batch Processor.</p>
@@ -607,7 +621,7 @@
         if(window.rawEditor) window.rawEditor.setValue('');
     }
 
-    // --- Upgraded Settings Memory Engine ---
+    // --- Settings Memory Engine ---
     function saveSettingsToStorage(btn) {
         const config = {
             col_header: document.getElementById('setting_col_header').value.replace('#',''),
@@ -624,7 +638,9 @@
             
             accent_row: document.getElementById('setting_accent_row').value.replace('#',''),
             accent_row_txt: document.getElementById('setting_accent_row_txt').value.replace('#',''),
-            accent_row_bold: document.getElementById('setting_accent_row_bold').checked
+            accent_row_bold: document.getElementById('setting_accent_row_bold').checked,
+
+            border_color: document.getElementById('setting_border_color').value.replace('#','')
         };
         localStorage.setItem('epm_theme_settings', JSON.stringify(config));
         
@@ -674,6 +690,8 @@
             applyVal('setting_accent_row', config.accent_row || 'FF8C00', true);
             applyVal('setting_accent_row_txt', config.accent_row_txt || 'FFFFFF', true);
             applyVal('setting_accent_row_bold', config.accent_row_bold !== undefined ? config.accent_row_bold : true, false);
+
+            applyVal('setting_border_color', config.border_color || 'FFFFFF', true);
         }
     }
 
@@ -697,6 +715,7 @@
         setVal('setting_data_row', 'F0F8FF'); setVal('setting_data_row_txt', '111111'); setVal('setting_data_row_bold', false);
         setVal('setting_formula_row', '0B2531'); setVal('setting_formula_row_txt', 'FFFFFF'); setVal('setting_formula_row_bold', true);
         setVal('setting_accent_row', 'FF8C00'); setVal('setting_accent_row_txt', 'FFFFFF'); setVal('setting_accent_row_bold', true);
+        setVal('setting_border_color', 'FFFFFF');
         
         saveSettingsToStorage(null);
         alert("Settings have been reverted to defaults.");
@@ -842,7 +861,7 @@
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
-    # --- UPGRADED: Expanded config fetcher ---
+    # --- Fetch UI Config Helper ---
     def get_theme_config():
         return {
             "col_header": document.getElementById("setting_col_header").value.replace("#", "").strip().upper(),
@@ -859,7 +878,9 @@
             
             "accent_row": document.getElementById("setting_accent_row").value.replace("#", "").strip().upper(),
             "accent_row_txt": document.getElementById("setting_accent_row_txt").value.replace("#", "").strip().upper(),
-            "accent_row_bold": document.getElementById("setting_accent_row_bold").checked
+            "accent_row_bold": document.getElementById("setting_accent_row_bold").checked,
+
+            "border_color": document.getElementById("setting_border_color").value.replace("#", "").strip().upper()
         }
 
     def save_session_to_localstorage():
@@ -1045,6 +1066,7 @@
         try:
             temp_mod = XMLAnalyzer()
             temp_mod.load_from_string(raw_xml)
+            
             temp_mod.apply_master_formatting(get_theme_config())
             
             window.outputEditor.setValue(temp_mod.get_final_xml_string())
