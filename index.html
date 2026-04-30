@@ -146,6 +146,9 @@
         .btn-glow-green { background: rgba(52, 211, 153, 0.1); border-color: rgba(52, 211, 153, 0.4); color: var(--neon-green); }
         .btn-glow-green:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 15px rgba(52, 211, 153, 0.4); }
 
+        .btn-glow-amber { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.4); color: var(--neon-amber); }
+        .btn-glow-amber:hover { background: var(--neon-amber); color: #000; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
+
         .upload-zone { 
             display: flex; align-items: center; gap: 20px; padding: 20px; 
             background: rgba(0,0,0,0.2);
@@ -232,10 +235,35 @@
 <body>
 
 <script>
+    // System Kill Switch URL
     const CLOUD_CONFIG_URL = "https://epm-config-db-default-rtdb.firebaseio.com/APP_ACTIVATED.json"; 
     
-    document.addEventListener("DOMContentLoaded", () => {
-        // Auto-load previously saved settings
+    // Global Dynamic Offset Registry
+    window.rowOffsets = {};
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        // --- NEW: Global Kill-Switch Logic ---
+        try {
+            const response = await fetch(CLOUD_CONFIG_URL);
+            const isActivated = await response.json();
+            
+            // If the database explicitly returns false, securely lock out the application
+            if (isActivated === false || isActivated === "false") {
+                document.body.innerHTML = `
+                    <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#18181b; color:#fb7185; font-family:'Outfit', sans-serif; flex-direction:column; text-align:center; padding: 20px;">
+                        <i class="ph-fill ph-warning-octagon" style="font-size: 80px; margin-bottom: 20px;"></i>
+                        <h1 style="font-size: 32px; margin: 0 0 10px 0;">Application Disabled</h1>
+                        <p style="color: #a1a1aa; max-width: 500px; line-height: 1.5; font-size: 16px;">The EPM Studio XML Multi-Tool has been temporarily disabled by the administrator. Please check back later or contact support for more information.</p>
+                    </div>
+                `;
+                return; // Hard stop
+            }
+        } catch (error) {
+            // Fail-open protocol: If there's a firewall or network issue, let the user proceed
+            console.warn("Kill switch ping blocked or failed. Defaulting to active state.", error);
+        }
+
+        // Auto-load previously saved settings if app is authorized
         loadSettingsFromStorage();
     });
 </script>
@@ -493,6 +521,35 @@
                         </tbody>
                     </table>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 15px;"><i class="ph-fill ph-info"></i> These colors and font weights will be securely applied whenever you execute "Format Active File" or trigger the Batch Processor.</p>
+                </div>
+
+                <div class="meta-section" style="margin-top: 10px;">
+                    <div style="color: var(--neon-amber); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;"><i class="ph-bold ph-flask" style="margin-right: 6px;"></i>Experimental: In-Place Global Color Replacer</div>
+                    
+                    <div style="display: flex; gap: 20px; align-items: center; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; border: 1px dashed rgba(251, 191, 36, 0.3);">
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Find Target Hex</label>
+                            <div class="flex-row" style="margin-top: 5px;">
+                                <div id="prev_exp_find" class="color-preview" style="background-color:#FFFFFF;"></div>
+                                <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                <input type="text" class="hex-input" id="exp_find_hex" value="FFFFFF" oninput="document.getElementById('prev_exp_find').style.backgroundColor = '#' + this.value">
+                            </div>
+                        </div>
+                        
+                        <i class="ph-bold ph-arrow-right" style="color: var(--text-muted); font-size: 24px;"></i>
+                        
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Replace With Hex</label>
+                            <div class="flex-row" style="margin-top: 5px;">
+                                <div id="prev_exp_replace" class="color-preview" style="background-color:#10B981;"></div>
+                                <span style="color: var(--text-muted); font-family: 'Fira Code', monospace;">#</span>
+                                <input type="text" class="hex-input" id="exp_replace_hex" value="10B981" oninput="document.getElementById('prev_exp_replace').style.backgroundColor = '#' + this.value">
+                            </div>
+                        </div>
+                        
+                        <button py-click="experimental_global_replace" class="btn btn-glow-amber" style="height: 42px; margin-top: 18px;"><i class="ph-bold ph-magic-wand"></i> Replace Everywhere</button>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 15px;"><i class="ph-fill ph-warning-circle" style="color: var(--neon-amber);"></i> This will instantly find and replace the target hex color across <b>all loaded forms in memory</b> without recalculating the grid layouts or rules.</p>
                 </div>
             </div>
 
@@ -787,7 +844,10 @@
         });
 
         const gridTarget = document.getElementById('grid-render-target');
+        
         gridTarget.addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'input') return;
+            
             const cell = e.target.closest('.grid-cell');
             if (!cell) return;
             
@@ -861,7 +921,6 @@
         file_prefix = f"[{active_filename}]" if active_filename else "[SYSTEM]"
         print(f"\n{file_prefix} >>> {msg}")
 
-    # --- Fetch UI Config Helper ---
     def get_theme_config():
         return {
             "col_header": document.getElementById("setting_col_header").value.replace("#", "").strip().upper(),
@@ -1027,11 +1086,13 @@
         log(f"Batch Processing {len(selected_files)} files...")
         
         memory_zip = io.BytesIO()
+        js_offsets = window.rowOffsets.to_py()
+        
         with zipfile.ZipFile(memory_zip, "w", zipfile.ZIP_DEFLATED) as zf:
             for fname in selected_files:
                 mod = file_registry[fname]
                 try:
-                    mod.apply_master_formatting(get_theme_config())
+                    mod.apply_master_formatting(get_theme_config(), js_offsets)
                     xml_str = mod.get_final_xml_string()
                     zf.writestr(f"Formatted_Forms/{fname}", xml_str)
                     print(f"BATCH SUCCESS: {fname}")
@@ -1043,13 +1104,51 @@
         log(f"Packaged {len(selected_files)} files into ZIP.")
         render_grid_visualizer(None)
 
+    def strip_borders_handler(event):
+        if not file_registry: return log("No files loaded.")
+        count = 0
+        for fname, mod in file_registry.items():
+            if mod.remove_all_border_links(): count += 1
+                
+        save_session_to_localstorage()
+        log(f"Stripped border links from styles across {count} forms.")
+        render_grid_visualizer(None)
+        render_color_injector(None)
+
+    def nuke_all_formatting_handler(event):
+        if not file_registry: return log("No files loaded.")
+        count = 0
+        for fname, mod in file_registry.items():
+            if mod.nuke_all_formatting(): count += 1
+                
+        save_session_to_localstorage()
+        log(f"Completely stripped all XML formatting from {count} forms.")
+        render_grid_visualizer(None)
+        render_color_injector(None)
+
+    def experimental_global_replace(event):
+        if not file_registry: return log("No files loaded.")
+        old_hex = document.getElementById("exp_find_hex").value.strip()
+        new_hex = document.getElementById("exp_replace_hex").value.strip()
+        
+        count = 0
+        for fname, mod in file_registry.items():
+            if mod.global_color_replace(old_hex, new_hex):
+                count += 1
+                
+        save_session_to_localstorage()
+        log(f"Globally replaced #{old_hex} with #{new_hex} across {count} forms.")
+        render_grid_visualizer(None)
+        render_color_injector(None)
+
     def format_active_file(event):
         modifier = get_active_modifier()
         if not modifier or not modifier.root: return log("Select a file first!")
         
         log(f"Executing layout rules on {active_filename}...")
         try:
-            modifier.apply_master_formatting(get_theme_config())
+            js_offsets = window.rowOffsets.to_py()
+            modifier.apply_master_formatting(get_theme_config(), js_offsets)
             xml_string = modifier.get_final_xml_string()
             download_single(xml_string, active_filename)
             save_session_to_localstorage()
@@ -1067,7 +1166,8 @@
             temp_mod = XMLAnalyzer()
             temp_mod.load_from_string(raw_xml)
             
-            temp_mod.apply_master_formatting(get_theme_config())
+            js_offsets = window.rowOffsets.to_py()
+            temp_mod.apply_master_formatting(get_theme_config(), js_offsets)
             
             window.outputEditor.setValue(temp_mod.get_final_xml_string())
             log("Buffer formatted successfully.")
@@ -1124,14 +1224,28 @@
         meta_html += build_meta_grid(grid.get("pages"), "Page Dimensions", "ph-files", "var(--neon-purple)")
 
         if meta_target: meta_target.innerHTML = meta_html
+        
+        try:
+            js_offsets = window.rowOffsets.to_py()
+        except:
+            js_offsets = {}
+            
+        def get_actual_location(abs_idx):
+            actual_loc = 0
+            for i in range(1, int(abs_idx)):
+                val = js_offsets.get(str(i)) or js_offsets.get(i) or 1
+                actual_loc += int(val)
+            return float(actual_loc + 1)
                 
         def get_cell_colors(r, c):
             bg = "rgba(255,255,255,0.02)"
             fg = "var(--text-main)"
             info = None
+            
             if (r, c) in fmt_map: info = fmt_map[(r, c)]
             elif (r, -1) in fmt_map: info = fmt_map[(r, -1)]
             elif (-1, c) in fmt_map: info = fmt_map[(-1, c)]
+            elif (r, 0) in fmt_map: info = fmt_map[(r, 0)]  
             
             if info:
                 if type(info) is dict and info["bg"]: 
@@ -1160,26 +1274,39 @@
         html += "</tr>"
         
         for row in grid["rows"]:
-            r_seg_idx = row.get("_segment_idx", 1)
-            is_spacer = (row.get("_size") == "-4")
+            r_abs_idx = int(row.get("_abs_idx", 1))
             
+            actual_r_loc = get_actual_location(r_abs_idx)
+            
+            is_spacer = (row.get("_size") == "-4")
             row_height_style = "height: 6px;" if is_spacer else ""
             cell_pad_style = "padding: 0; font-size: 0px; color: transparent;" if is_spacer else ""
             cell_class = "" if is_spacer else "grid-cell"
             
             html += f"<tr style='{row_height_style}'>"
             
-            bg, fg = get_cell_colors(r_seg_idx, 0)
+            bg, fg = get_cell_colors(actual_r_loc, 0)
+            if not bg or bg == "rgba(255,255,255,0.02)":
+                if (actual_r_loc, 0) in fmt_map: 
+                    fallback = fmt_map[(actual_r_loc, 0)]
+                    bg = fallback["bg"] if type(fallback) is dict else fallback
+                    
             if is_spacer: fg = "transparent"
             text = get_display_text(row, mode)
-            html += f"<th class='{cell_class}' data-r='{r_seg_idx}' data-c='0' style='background-color:{bg}; color:{fg}; {cell_pad_style}'>{text}</th>"
+            
+            offset_html = ""
+            if not is_spacer:
+                val = int(js_offsets.get(str(r_abs_idx), js_offsets.get(r_abs_idx, 1)))
+                offset_html = f"<div style='margin-top: 8px;' onclick='event.stopPropagation();'><span style='font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:600;'>Grid Offset:</span> <input type='number' class='offset-input' data-idx='{r_abs_idx}' value='{val}' min='1' style='width: 36px; background: #fbbf24; border: 1px solid #d97706; color: #000000; border-radius: 4px; padding: 3px 2px; font-size: 12px; font-weight: 800; text-align: center; margin-left: 4px; cursor: text; outline: none;' onchange='window.rowOffsets[this.getAttribute(\"data-idx\")] = parseInt(this.value) || 1; document.getElementById(\"refresh-grid-btn\").click();'></div>"
+            
+            html += f"<th class='{cell_class}' data-r='{actual_r_loc}' data-c='0' style='background-color:{bg}; color:{fg}; {cell_pad_style}'><div>{text}</div>{offset_html}</th>"
             
             for col in grid["columns"]:
-                c_seg_idx = col.get("_segment_idx", 1)
+                c_seg_idx = int(col.get("_segment_idx", 1))
                 
-                bg_data, fg_data = get_cell_colors(r_seg_idx, c_seg_idx)
+                bg_data, fg_data = get_cell_colors(actual_r_loc, c_seg_idx)
                 if is_spacer: fg_data = "transparent"
-                html += f"<td class='{cell_class}' data-r='{r_seg_idx}' data-c='{c_seg_idx}' style='background-color:{bg_data}; color:{fg_data}; {cell_pad_style}'>Data</td>"
+                html += f"<td class='{cell_class}' data-r='{actual_r_loc}' data-c='{c_seg_idx}' style='background-color:{bg_data}; color:{fg_data}; {cell_pad_style}'>Data</td>"
             html += "</tr>"
             
         html += "</table>"
