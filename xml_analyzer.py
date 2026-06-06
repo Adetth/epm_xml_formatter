@@ -46,6 +46,28 @@ class XMLAnalyzer:
                 return re.sub(pattern, lambda m: self.safe_header, modified_xml_string, count=1)
         return modified_xml_string
 
+    def _shift_row_indexes(self, insert_idx_0_based):
+        crs_bucket = self.root.find(".//columnRowSizes")
+        if crs_bucket is not None:
+            for crs in crs_bucket.findall("columnRowSize"):
+                if crs.get("type") == "row":
+                    try:
+                        idx_val = int(crs.get("index", "-1"))
+                        if idx_val >= insert_idx_0_based:
+                            crs.set("index", str(idx_val + 1))
+                    except ValueError:
+                        pass
+                        
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is not None:
+            for dvr in dvr_bucket.findall("dataValidationRule"):
+                try:
+                    r_loc = float(dvr.get("rowLocation", "-1.0"))
+                    if r_loc >= insert_idx_0_based + 1:
+                        dvr.set("rowLocation", str(r_loc + 1.0))
+                except ValueError:
+                    pass
+
     def ensure_accent_row(self):
         if self.root is None: return
         rows_node = self.root.find(".//query/rows")
@@ -59,6 +81,7 @@ class XMLAnalyzer:
         
         def create_spacer(base_seg):
             new_seg = copy.deepcopy(base_seg)
+            new_seg.attrib.pop("hidden", None) 
             new_seg.set("size", "-4")
             for dim in new_seg.findall("dimension"):
                 for child in list(dim): dim.remove(child) 
@@ -75,9 +98,12 @@ class XMLAnalyzer:
                 seg1 = segments[1]
                 if seg1.find(".//formula") is not None and seg1.get("size", "") == "-4":
                     needs_spacer = False
-            if needs_spacer: rows_node.insert(1, create_spacer(seg0))
+            if needs_spacer: 
+                rows_node.insert(1, create_spacer(seg0))
+                self._shift_row_indexes(1) 
         else:
             rows_node.insert(0, create_spacer(seg0))
+            self._shift_row_indexes(0) 
 
     def get_rowcols(self):
         if self.root is None: return {"rows": [], "columns": [], "pov": [], "pages": []}
@@ -92,8 +118,11 @@ class XMLAnalyzer:
                 if parent_node.findall("dimension"):
                     segments = [parent_node]
                     
+            abs_idx = 1 
             for s_idx, segment in enumerate(segments):
                 dim_size = segment.get("size", segment.get("width", segment.get("height", "")))
+                is_seg_hidden = (segment.get("hidden") == "true" or dim_size == "0")
+                
                 combos = [{}] 
                 for dimension in segment.findall("dimension"):
                     dim_name = dimension.get("name", "")
@@ -126,6 +155,9 @@ class XMLAnalyzer:
                 for c in combos:
                     if c: 
                         c["_segment_idx"] = s_idx + 1 
+                        c["_abs_idx"] = abs_idx
+                        c["_is_hidden"] = is_seg_hidden 
+                        abs_idx += 1
                         container_list.append(c)
             return container_list
 
@@ -171,9 +203,63 @@ class XMLAnalyzer:
         if dvr_bucket is not None:
             for idx, dvr in enumerate(dvr_bucket.findall("dataValidationRule")):
                 dvr.set("position", str(idx + 1))
-                cond = dvr.find("dataValidationCond")
-                if cond is not None:
-                    cond.set("position", "1")
+
+    def nuke_all_formatting(self):
+        if self.root is None: return False
+        self.save_state()
+        
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is not None:
+            self.root.remove(dvr_bucket)
+            
+        ff_bucket = self.root.find(".//formFormattings")
+        if ff_bucket is not None:
+            self.root.remove(ff_bucket)
+            
+        self.setup_formatting_foundation() 
+        return True
+
+    def remove_all_border_links(self):
+        if self.root is None: return False
+        self.save_state()
+        
+        removed = False
+        styles_bucket = self.root.find(".//cellStyles")
+        if styles_bucket is not None:
+            for style in styles_bucket.findall("cellStyle"):
+                objs_node = style.find("objs")
+                if objs_node is not None:
+                    borders_to_remove = [obj for obj in objs_node.findall("obj") if obj.get("type") == "border"]
+                    for b in borders_to_remove:
+                        objs_node.remove(b)
+                        removed = True
+        return removed
+
+    def global_color_replace(self, old_hex, new_hex):
+        if self.root is None: return False
+        self.save_state()
+        
+        old_clean = old_hex.replace("#", "").upper()
+        new_clean = new_hex.replace("#", "").upper()
+        
+        if len(new_clean) != 6: return False
+        
+        new_r = str(int(new_clean[0:2], 16))
+        new_g = str(int(new_clean[2:4], 16))
+        new_b = str(int(new_clean[4:6], 16))
+        
+        replaced_count = 0
+        colors_bucket = self.root.find(".//values/colors")
+        if colors_bucket is not None:
+            for c in colors_bucket.findall("color"):
+                c_hex = self.rgb_to_hex([c.get("R","0"), c.get("G","0"), c.get("B","0")])
+                if c_hex == old_clean:
+                    c.set("R", new_r)
+                    c.set("G", new_g)
+                    c.set("B", new_b)
+                    replaced_count += 1
+                    
+        return replaced_count > 0
 
     def strip_legacy_formatting(self):
         if self.root is None: return False
@@ -200,7 +286,8 @@ class XMLAnalyzer:
         self._resequence_dvrs()
         return True
 
-    def apply_master_formatting(self, theme_config=None):
+    # --- UPGRADED: Includes row_offsets parameter to calculate Oracle coordinates ---
+    def apply_master_formatting(self, theme_config=None, row_offsets=None):
         if self.root is None: return False
         self.save_state() 
         
@@ -214,13 +301,13 @@ class XMLAnalyzer:
         self.setup_formatting_foundation()
         self.ensure_txt_formats()
         
-        # Load user defaults or fallback to standard EPM palette
         if theme_config is None:
             theme_config = {
                 "col_header": "0B2531", "col_header_txt": "FFFFFF", "col_header_bold": True,
                 "data_row": "F0F8FF", "data_row_txt": "111111", "data_row_bold": False,
                 "formula_row": "0B2531", "formula_row_txt": "FFFFFF", "formula_row_bold": True,
-                "accent_row": "FF8C00", "accent_row_txt": "FFFFFF", "accent_row_bold": True
+                "accent_row": "FF8C00", "accent_row_txt": "FFFFFF", "accent_row_bold": True,
+                "border_color": "FFFFFF", "remove_borders": False
             }
             
         def hex_to_r_g_b(h):
@@ -240,34 +327,45 @@ class XMLAnalyzer:
         acc_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("accent_row", "FF8C00")), ignore_history=True)
         acc_txt_id = self.add_new_color(*hex_to_r_g_b(theme_config.get("accent_row_txt", "FFFFFF")), ignore_history=True)
 
-        border_ids = self.inject_standard_borders()
+        remove_borders_flag = theme_config.get("remove_borders", False)
+        border_ids = self.inject_standard_borders(theme_config.get("border_color", "FFFFFF"), remove_borders_flag)
         
         col_style_id = self.add_advanced_cell_style(bg_color_id=col_id, txt_color_id=col_txt_id, is_bold=theme_config.get("col_header_bold", True), border_ids=border_ids)
         form_style_id = self.add_advanced_cell_style(bg_color_id=form_id, txt_color_id=form_txt_id, is_bold=theme_config.get("formula_row_bold", True))
         data_style_id = self.add_advanced_cell_style(bg_color_id=data_id, txt_color_id=data_txt_id, is_bold=theme_config.get("data_row_bold", False))
         acc_style_id = self.add_advanced_cell_style(bg_color_id=acc_id, txt_color_id=acc_txt_id, is_bold=theme_config.get("accent_row_bold", True))
 
-        max_col_seg = max((c.get("_segment_idx", 1) for c in grid_data["columns"]), default=0)
-        max_row_seg = max((r.get("_segment_idx", 1) for r in grid_data["rows"]), default=0)
+        # --- The Mathematical Offset Compensator ---
+        def get_actual_location(abs_idx):
+            if not row_offsets: return float(abs_idx)
+            actual_loc = 0
+            for i in range(1, int(abs_idx)):
+                val = row_offsets.get(str(i)) or row_offsets.get(i) or 1
+                actual_loc += int(val)
+            return float(actual_loc + 1)
 
-        for c_idx in range(max_col_seg):
-            self.add_location_dvr(row_loc=0.0, col_loc=c_idx+1, style_id=col_style_id, hex_color=theme_config["col_header"], rule_name=f"Column {c_idx+1} Header")
+        for col_info in grid_data["columns"]:
+            c_abs_idx = col_info.get("_abs_idx")
+            if col_info.get("_is_hidden"): continue
+            self.add_location_dvr(row_loc=0.0, col_loc=c_abs_idx, style_id=col_style_id, hex_color=theme_config["col_header"], rule_name=f"Column {c_abs_idx} Header Format")
 
-        for r_idx in range(1, max_row_seg + 1):
-            row_info = next((r for r in grid_data["rows"] if r.get("_segment_idx") == r_idx), None)
-            if not row_info: continue
+        for row_info in grid_data["rows"]:
+            r_abs_idx = row_info.get("_abs_idx")
+            if row_info.get("_is_hidden"): continue
+            
+            actual_r_loc = get_actual_location(r_abs_idx)
             
             is_formula = (row_info.get("_type") == "FORMULA")
             is_spacer = (row_info.get("_size") == "-4")
             
-            if r_idx == 1 and is_formula and not is_spacer:
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=form_style_id, hex_color=theme_config["formula_row"], rule_name=f"Row {r_idx} Header")
-                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=form_style_id, hex_color=theme_config["formula_row"], rule_name=f"Row {r_idx} Data")
+            if is_formula and not is_spacer:
+                self.add_location_dvr(row_loc=actual_r_loc, col_loc=0.0, style_id=form_style_id, hex_color=theme_config["formula_row"], rule_name=f"Row {int(actual_r_loc)} Header Format (Formula)")
+                self.add_location_dvr(row_loc=actual_r_loc, col_loc=-1.0, style_id=form_style_id, hex_color=theme_config["formula_row"], rule_name=f"Row {int(actual_r_loc)} Data Format (Formula)")
             elif is_formula and is_spacer:
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=acc_style_id, hex_color=theme_config["accent_row"], rule_name=f"Row {r_idx} Header")
-                self.add_location_dvr(row_loc=r_idx, col_loc=-1.0, style_id=acc_style_id, hex_color=theme_config["accent_row"], rule_name=f"Row {r_idx} Data")
+                self.add_location_dvr(row_loc=actual_r_loc, col_loc=0.0, style_id=acc_style_id, hex_color=theme_config["accent_row"], rule_name=f"Row {int(actual_r_loc)} Header Format (Accent Line)")
+                self.add_location_dvr(row_loc=actual_r_loc, col_loc=-1.0, style_id=acc_style_id, hex_color=theme_config["accent_row"], rule_name=f"Row {int(actual_r_loc)} Data Format (Accent Line)")
             else:
-                self.add_location_dvr(row_loc=r_idx, col_loc=0.0, style_id=data_style_id, hex_color=theme_config["data_row"], rule_name=f"Row {r_idx} Header")
+                self.add_location_dvr(row_loc=actual_r_loc, col_loc=0.0, style_id=data_style_id, hex_color=theme_config["data_row"], rule_name=f"Row {int(actual_r_loc)} Header Format (Data)")
 
         self._resequence_dvrs()
         return True
@@ -413,6 +511,11 @@ class XMLAnalyzer:
 
     def setup_formatting_foundation(self):
         if self.root is None: return False
+        
+        dvr_bucket = self.root.find(".//dataValidationRules")
+        if dvr_bucket is None:
+            ET.SubElement(self.root, "dataValidationRules")
+            
         ff_parent = self.root.find(".//formFormattings")
         if ff_parent is None: ff_parent = ET.SubElement(self.root, "formFormattings")
         ff = ff_parent.find("formFormatting")
@@ -466,13 +569,25 @@ class XMLAnalyzer:
             return new_id
         return None
 
-    def inject_standard_borders(self):
-        hardcoded_xml = """<borders>
-            <border><id>32768</id><color R="255" G="255" B="255" /><placement>Top</placement><style>solid</style><width>0.4</width></border>
-            <border><id>32769</id><color R="255" G="255" B="255" /><placement>Right</placement><style>solid</style><width>0.4</width></border>
-            <border><id>32770</id><color R="255" G="255" B="255" /><placement>Bottom</placement><style>solid</style><width>0.4</width></border>
-            <border><id>32771</id><color R="255" G="255" B="255" /><placement>Left</placement><style>solid</style><width>0.4</width></border>
-        </borders>"""
+    def inject_standard_borders(self, hex_color="FFFFFF", remove_borders=False):
+        if remove_borders:
+            for elem in self.root.iter():
+                if 'borders' in elem.tag.lower():
+                    elem.clear() 
+            return None 
+
+        clean_hex = hex_color.replace("#", "").upper()
+        if len(clean_hex) != 6: clean_hex = "FFFFFF"
+        r = str(int(clean_hex[0:2], 16))
+        g = str(int(clean_hex[2:4], 16))
+        b = str(int(clean_hex[4:6], 16))
+
+        hardcoded_xml = f"""<borders>
+            <border><id>32768</id><color R="{r}" G="{g}" B="{b}" /><placement>Top</placement><style>solid</style><width>0.4</width></border>
+            <border><id>32769</id><color R="{r}" G="{g}" B="{b}" /><placement>Right</placement><style>solid</style><width>0.4</width></border>
+            <border><id>32770</id><color R="{r}" G="{g}" B="{b}" /><placement>Bottom</placement><style>solid</style><width>0.4</width></border>
+            <border><id>32771</id><color R="{r}" G="{g}" B="{b}" /><placement>Left</placement><style>solid</style><width>0.4</width></border>
+                        </borders>"""
         new_borders = ET.fromstring(hardcoded_xml)
         for elem in self.root.iter():
             if 'borders' in elem.tag.lower():
@@ -487,8 +602,10 @@ class XMLAnalyzer:
         if styles_bucket is not None:
             cell_style = ET.SubElement(styles_bucket, "cellStyle", id=str(style_id))
             objs_node = ET.SubElement(cell_style, "objs")
+            
             if border_ids:
                 for b_id in border_ids: ET.SubElement(objs_node, "obj", type="border", id=str(b_id))
+                
             values_node = ET.SubElement(cell_style, "cellStyleValues")
             ET.SubElement(values_node, "font", id="32768") 
             ET.SubElement(values_node, "readOnly").text = "false"
